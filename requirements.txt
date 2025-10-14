@@ -1,8 +1,11 @@
 # Core RL and ML libraries
 torch>=2.0.0
-gymnasium[atari,accept-rom-license]>=0.29.0
+gymnasium[box2d,atari,accept-rom-license]>=0.29.0
 ale-py>=0.8.0
 pygame>=2.5.0
+
+# Logging and experiment tracking
+wandb>=0.16.0
 
 # Scientific computing and data handling
 numpy>=1.24.0

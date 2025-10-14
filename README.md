@@ -14,12 +14,20 @@ This repository contains the implementation and experiments for our university p
 Compare naïve dense shaping against potential-based shaping across sparse-reward tasks to identify when shaping accelerates learning versus when it biases policies.
 
 ### Tasks
-
+https://docs.google.com/document/d/1xXon4ktpAdHPizVb3PvXX6tmJmtjUxi2Wyn-aixLfps/edit?tab=t.0
 - Implement standard RL algorithms (Q-learning, PPO, DQN) on sparse-reward tasks (MountainCar, Atari Montezuma's Revenge)
 - Compare naive reward shaping (dense rewards, penalties) with potential-based shaping
 - Study the impact on convergence, exploration, and policy optimality
 - Analyze sensitivity to mis-specified shaping potentials
 - Provide guidelines: When is shaping helpful, harmful, or unnecessary?
+
+### Get Environment
+Conda:
+```cmd
+conda create -n ShapingRL python=3.13 -y
+conda activate ShapingRL
+pip install -r requirements.txt
+```
 
 ### References
 
@@ -42,6 +50,7 @@ ShapingRL/
 │   │   └── replay_buffer.py     # Experience replay buffer
 │   ├── environments/             # Environment wrappers
 │   │   └── mountain_car.py      # MountainCar environment wrapper
+│   │   └── montezumas_revenge.py   # MountainCar environment wrapper
 │   └── shaping/                  # Reward shaping methods
 │       ├── naive_dense.py       # Naive dense reward shaping
 │       └── potential_based.py   # Potential-based reward shaping
