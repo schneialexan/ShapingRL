@@ -5,6 +5,8 @@ from datetime import datetime
 import wandb
 import os
 import sys
+import torch
+
 # local imports
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, os.pardir, os.pardir))
@@ -26,20 +28,7 @@ def run_episode(env, agent, agent_name, evaluate=False, max_steps=200):
     done = False
     steps = 0
 
-    # For PPO API: collect a batch list
-    ppo_batch = []
-
     while not done and steps < max_steps:
-        if agent_name == 'ppo':
-            action = agent.select_action(obs, evaluate)
-            next_obs, reward, terminated, truncated, info = env.step(action)
-            done = terminated or truncated
-            log_prob = None
-            ppo_batch.append((obs, action, reward, next_obs, done, log_prob))
-            obs = next_obs
-            total_reward += reward
-            steps += 1
-        else:
             action = agent.select_action(obs, evaluate)
             next_obs, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
@@ -49,13 +38,19 @@ def run_episode(env, agent, agent_name, evaluate=False, max_steps=200):
             obs = next_obs
             total_reward += reward
             steps += 1
-
-    if agent_name == 'ppo' and len(ppo_batch) > 0 and not evaluate:
-        loss = agent.observe(ppo_batch)
-        return total_reward, loss
+            agent.epsilon = max(agent.epsilon_min, agent.epsilon * agent.epsilon_decay)
+            agent.episode_count += 1
     
     avg_loss = float(np.mean(losses)) if len(losses) > 0 else None
     return total_reward, avg_loss
+
+def evaluate_policy(env, agent, agent_name, n_eval=5, max_steps=200):
+    total_returns = []
+    for _ in range(n_eval):
+        ret, _ = run_episode(env, agent, agent_name, evaluate=True, max_steps=max_steps)
+        total_returns.append(ret)
+    avg_return = np.mean(total_returns)
+    return avg_return
 
 def main(cli_args=None):
     parser = argparse.ArgumentParser()
@@ -89,22 +84,52 @@ def main(cli_args=None):
     if args.agent == 'q_learning':
         obs_low = env.observation_space.low
         obs_high = env.observation_space.high
-        agent = QLearningAgent(obs_low, obs_high, n_bins=(40, 40), n_actions=env.action_space.n)
+        agent = QLearningAgent(obs_low, obs_high, n_bins=(60, 60), n_actions=env.action_space.n)
     elif args.agent == 'dqn':
         obs_dim = env.observation_space.shape[0]
         agent = DQNAgent(obs_dim, env.action_space.n, device='cpu')
     elif args.agent == 'ppo':
         obs_dim = env.observation_space.shape[0]
-        agent = PPOAgent(obs_dim, env.action_space.n, device='cpu')
+        n_actions = env.action_space.n
+        agent = PPOAgent(env, obs_dim=obs_dim, n_actions=n_actions, device='cpu')
+        # learn (since we cannot do step-wise training for PPO)
+        agent.learn(total_timesteps=args.episodes * args.max_steps) 
+        run.finish()
+        exit()
 
     best_return = -float('inf')
     for ep in range(1, args.episodes + 1):
-        ret, loss = run_episode(env, agent, agent_name, evaluate=False, max_steps=args.max_steps)
-        wandb.log({'episode': ep, 'return': ret, 'loss': loss})
+        if agent_name != "ppo":
+            ret, loss = run_episode(env, agent, agent_name, evaluate=False, max_steps=args.max_steps)
+        convergence, exploration, policy_opt = None, None, None
+        if agent_name == "q_learning":
+            convergence = agent.get_max_q_change()
+            exploration = agent.epsilon
+        elif agent_name == "dqn":
+            convergence = agent.get_grad_norm()
+            exploration = agent.epsilon
+        elif agent_name == "ppo":
+            convergence_metrics = agent.get_convergence_metrics()
+            convergence = convergence_metrics["approx_kl"]
+            exploration = agent.get_policy_entropy()
+        wandb.log({
+            "episode": ep,
+            "return": ret,
+            "loss": loss,
+            "convergence": convergence,
+            "exploration": exploration,
+            "policy_opt": policy_opt
+        })
 
         if ep % 25 == 0:
             eval_ret, _ = run_episode(env, agent, agent_name, evaluate=True, max_steps=args.max_steps)
-            wandb.log({'eval_return': eval_ret, 'episode': ep})
+            policy_opt = evaluate_policy(env, agent, agent_name, n_eval=5, max_steps=args.max_steps)
+            
+            wandb.log({
+                "episode": ep,
+                "eval_return": eval_ret,
+                "policy_opt": policy_opt
+            })
             if eval_ret > best_return:
                 best_return = eval_ret
                 save_dir = os.environ.get('SHAPINGRL_SAVE_DIR', './checkpoints')
@@ -121,9 +146,12 @@ def main(cli_args=None):
     run.finish()
 
 if __name__ == '__main__':
+    # check for GPU availability
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
     main({
-        'agent': 'dqn',
-        'episodes': 100,
-        'project': 'TestRun',
+        'agent': 'ppo',
+        'episodes': 1000,
+        'project': 'TestRun-v3',
         'seed': 42
     })
