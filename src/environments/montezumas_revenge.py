@@ -16,8 +16,40 @@ sys.path.insert(0, str(project_root))
 # Now the imports will work
 from src.agents.ppo import PPOAgent
 
-def make_env(env_name='ALE/MontezumaRevenge-v5', render_mode=None):
-    """Create the Montezuma's Revenge environment."""
+class ReducedActionSpaceWrapper(gym.ActionWrapper):
+    """Wrapper to reduce action space to a meaningful subset."""
+    
+    def __init__(self, env, action_subset=None):
+        """
+        Args:
+            env: The environment to wrap
+            action_subset: List of action indices to keep. If None, uses a default minimal set.
+        """
+        super().__init__(env)
+        
+        if action_subset is None:
+            # ['NOOP', 'FIRE', 'UP', 'RIGHT', 'LEFT', 'DOWN', 'UPRIGHT',
+            # 'UPLEFT', 'DOWNRIGHT', 'DOWNLEFT', 'UPFIRE', 'RIGHTFIRE',
+            # 'LEFTFIRE', 'DOWNFIRE', 'UPRIGHTFIRE', 'UPLEFTFIRE', 'DOWNRIGHTFIRE', 'DOWNLEFTFIRE']
+            # Reduced action subset without FIRE and NOOP:
+            action_subset = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+        
+        self.action_subset = action_subset
+        self.action_space = gym.spaces.Discrete(len(action_subset))
+        self._action_mapping = {i: action_subset[i] for i in range(len(action_subset))}
+        
+    def action(self, act):
+        """Map reduced action to original action."""
+        return self._action_mapping[act]
+
+def make_env(env_name='ALE/MontezumaRevenge-v5', render_mode=None, reduce_action_space=False):
+    """Create the Montezuma's Revenge environment.
+    
+    Args:
+        env_name: Name of the environment
+        render_mode: Rendering mode (e.g., 'human', None)
+        reduce_action_space: If True, reduce action space to meaningful subset
+    """
     try:
         env = gym.make(env_name, render_mode=render_mode)
     except gym.error.Error:
@@ -30,6 +62,10 @@ def make_env(env_name='ALE/MontezumaRevenge-v5', render_mode=None):
             reward_threshold=3000.0,
         )
         env = gym.make(env_name, render_mode=render_mode)
+    
+    if reduce_action_space:
+        env = ReducedActionSpaceWrapper(env)
+    
     return env
 
 def main(cli_args=None, device=None):
@@ -42,6 +78,7 @@ def main(cli_args=None, device=None):
     parser.add_argument('--eval_freq', type=int, default=10000, help='Evaluate every N timesteps')
     parser.add_argument('--n_eval_episodes', type=int, default=10)
     parser.add_argument('--render', action='store_true', help='Render environment during training')
+    parser.add_argument('--reduce_action_space', action='store_true', help='Reduce action space to meaningful subset')
     
     if cli_args is None:
         args = parser.parse_args()
@@ -65,11 +102,13 @@ def main(cli_args=None, device=None):
 
     # Create environment
     render_mode = "human" if args.render else None
-    env = make_env('ALE/MontezumaRevenge-v5', render_mode=render_mode)
+    env = make_env('ALE/MontezumaRevenge-v5', render_mode=render_mode, reduce_action_space=args.reduce_action_space)
     env.reset(seed=args.seed)
     
-    print(f"Environment action space: {env.action_space}")
-    print(f"Environment actions: {env.unwrapped.get_action_meanings()}")
+    if args.reduce_action_space:
+        print(f"Action space reduced from 18 to {env.action_space.n} actions")
+    else:
+        print(f"Action space not reduced, using all 18 actions: {env.unwrapped.get_action_meanings()}")
 
     # Initialize PPO Agent
     obs_dim = env.observation_space.shape
