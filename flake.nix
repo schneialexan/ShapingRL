@@ -21,6 +21,7 @@
 
           # 2. Use standard ale-py and handle ROMs in shellHook
           ale-py-with-roms = pkgs.python3.pkgs.ale-py;
+          
 
         in
         {
@@ -32,11 +33,6 @@
               lazyjj
               curl
               unrar
-              # SDL dependencies for rendering
-              SDL2
-              SDL2_image
-              SDL2_mixer
-              SDL2_ttf
               # SDL3 for ale-py compatibility
               sdl3
               sdl3-image
@@ -68,6 +64,9 @@
                 tqdm
                 pyyaml
                 wandb
+                (stable-baselines3.override {
+                  torch = if stdenv.isLinux then torchWithRocm else torch;
+                })
               ]))
             ] ++ pkgs.lib.optionals stdenv.isLinux [
               rocmPackages.rocm-runtime
@@ -123,11 +122,6 @@
               lazyjj
               curl
               unrar
-              # SDL dependencies for rendering
-              SDL2
-              SDL2_image
-              SDL2_mixer
-              SDL2_ttf
               # SDL3 for ale-py compatibility
               sdl3
               sdl3-image
@@ -157,6 +151,10 @@
                 flake8
                 tqdm
                 pyyaml
+                wandb
+                (stable-baselines3.override {
+                  torch = if stdenv.isLinux then torchWithRocm else torch;
+                })
               ]))
               cudaPackages.cudatoolkit
             ];

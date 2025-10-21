@@ -102,7 +102,8 @@ class PPOAgent:
             gamma=0.99,
             n_epochs=20,
             clip_range=0.2,
-            seed=seed_n
+            seed=seed_n,
+            device=device
         )
 
     def learn(self, total_timesteps, callback=None):
