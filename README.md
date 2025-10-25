@@ -142,6 +142,10 @@ For users who prefer traditional Python tools:
 
 #### Using pip
 
+> ⚠️ Disclaimer for **macOS apple silicon** installations
+> 
+> You may encounter a `hint: This error likely indicates that you need to install a library that provides "SDL.h" ...` error while installing the package pygame@2.6.1 on macOS. Several Stackoverflow posts and the official documentation (https://www.pygame.org/wiki/MacCompile) suggest installing some arbitrary sdl packages with brew to fix the compilation. Do not even bother as some of these packages don't even exist anymore and newer versions don't work. **Just use conda.**
+
 1. **Setup:**
    ```bash
    git clone https://github.com/btwbrauer/ShapingRL.git
