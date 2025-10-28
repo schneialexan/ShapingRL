@@ -1,88 +1,95 @@
 import numpy as np
-import pickle
+import random
+from collections import defaultdict
+import wandb
 
-class QLearningAgent:
-    """Tabular Q-learning agent with state discretization for MountainCar-v0."""
-    def __init__(
-        self,
-        obs_low,
-        obs_high,
-        n_bins=(60, 60),
-        n_actions=3,
-        gamma=0.99,
-        epsilon_start=1.0,
-        epsilon_min=0.05,
-        epsilon_decay=0.9995,
-        lr_init=0.5,
-        lr_min=0.01,
-        lr_decay=0.9995,
-    ):
-        self.obs_low = np.array(obs_low)
-        self.obs_high = np.array(obs_high)
-        self.n_bins = np.array(n_bins)
-        self.n_actions = n_actions
+class QLearningTrainer:
+    def __init__(self, env, config, run=None):
+        self.env = env
+        self.config = config
+        self.run = run
+        self.q_table = defaultdict(lambda: np.zeros(self.env.action_space.n))
+        self.epsilon = config.get('epsilon_start', 1.0)
+        self.epsilon_min = config.get('epsilon_min', 0.02)
+        self.epsilon_decay = config.get('epsilon_decay', 0.995)
+        self.alpha = config.get('alpha', 0.1)
+        self.gamma = config.get('gamma', 0.99)
+        self.total_episodes = config.get('total_episodes', 1000)
+        self.n_bins = config.get('n_bins', [18, 14])
+        self.obs_space = np.array([[-1.2, 0.6], [-0.07, 0.07]])
+        self.bins_list = [np.linspace(self.obs_space[i, 0], self.obs_space[i, 1], self.n_bins[i]-1) 
+                          for i in range(len(self.n_bins))]
 
-        self.gamma = gamma
+    def discretize(self, obs):
+        return tuple(int(np.digitize(obs[i], self.bins_list[i])) for i in range(len(obs)))
 
-        # Exploration
-        self.epsilon = epsilon_start
-        self.epsilon_start = epsilon_start
-        self.epsilon_min = epsilon_min
-        self.epsilon_decay = epsilon_decay
+    def train(self):
+        for ep in range(self.total_episodes):
+            reset_result = self.env.reset()
+            if isinstance(reset_result, tuple):
+                obs, info = reset_result
+            else:
+                obs = reset_result
+            s = self.discretize(obs)
+            done = False
+            ep_reward = 0
+            steps = 0
+            visited_states = set()
+            episode_env_rewards = []
+            episode_shaping_rewards = []
 
-        # Learning rate
-        self.lr_init = lr_init
-        self.lr_min = lr_min
-        self.lr_decay = lr_decay
+            while not done:
+                visited_states.add(s)
+                # ε-greedy action selection
+                if random.random() < self.epsilon:
+                    a = self.env.action_space.sample()
+                else:
+                    a = int(np.argmax(self.q_table[s]))
 
-        # Q-table
-        self.q_table = np.zeros((*n_bins, n_actions), dtype=np.float32)
+                step_result = self.env.step(a)
+                if len(step_result) == 5:
+                    next_obs, r, terminated, truncated, info = step_result
+                    done = terminated or truncated
+                else:
+                    next_obs, r, done, info = step_result
 
-        # Precompute bin widths
-        self.bin_width = (self.obs_high - self.obs_low) / self.n_bins
+                # extract shaping_reward safely
+                shaping_reward = info.get('shaping_reward', 0) if info else 0
+                env_reward = info.get('env_reward', r - shaping_reward) if info else r - shaping_reward
+                episode_env_rewards.append(env_reward)
+                episode_shaping_rewards.append(shaping_reward)
 
-        # Episode counter
-        self.episode_count = 0
+                ep_reward += r
+                if isinstance(next_obs, tuple):
+                    next_obs = next_obs[0]
 
-    def _discretize(self, obs):
-        ratios = (obs - self.obs_low) / self.bin_width
-        indices = np.clip(ratios.astype(int), 0, self.n_bins - 1)
-        return tuple(indices)
+                s2 = self.discretize(next_obs)
+                best_next = np.max(self.q_table[s2])
+                self.q_table[s][a] += self.alpha * (r + self.gamma*best_next - self.q_table[s][a])
+                s = s2
+                steps += 1
 
-    def select_action(self, state, evaluate=False):
-        s = self._discretize(state)
-        if not evaluate and np.random.rand() < self.epsilon:
-            return np.random.randint(self.n_actions)
-        return int(np.argmax(self.q_table[s]))
+            # Update epsilon
+            self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
-    def observe(self, state, action, reward, next_state, done):
-        s = self._discretize(state)
-        s_next = self._discretize(next_state)
+            # Compute Q-metrics
+            max_q = max([np.max(self.q_table[s]) for s in self.q_table])
+            mean_q = np.mean([np.mean(self.q_table[s]) for s in self.q_table])
+            visited_best_q = max([np.max(self.q_table[s]) for s in visited_states])
 
-        # Decayed learning rate
-        lr = max(self.lr_min, self.lr_init * (self.lr_decay ** self.episode_count))
+            # Log to WandB
+            if self.run:
+                wandb.log({
+                    'episode': ep,
+                    'episode_reward': ep_reward,
+                    'episode_length': steps,
+                    'epsilon': self.epsilon,
+                    'avg_env_reward': np.sum(episode_env_rewards),
+                    'avg_shaping_reward': np.sum(episode_shaping_rewards),
+                    'avg_total_reward': ep_reward,
+                    'max_q': max_q,
+                    'mean_q': mean_q,
+                    'visited_best_q': visited_best_q
+                })
 
-        td_target = reward + (0 if done else self.gamma * np.max(self.q_table[s_next]))
-        td_error = td_target - self.q_table[s + (action,)]
-        self.q_table[s + (action,)] += lr * td_error
-
-        return abs(td_error)
-
-    def save(self, path):
-        with open(path, "wb") as f:
-            pickle.dump(self.q_table, f)
-
-    def load(self, path):
-        with open(path, "rb") as f:
-            self.q_table = pickle.load(f)
-
-    # ---------- UTILITIES ----------
-    def get_max_q_change(self):
-        """Returns max absolute change in Q-table since last episode."""
-        # Store previous Q-table snapshot at end of episode
-        if not hasattr(self, "_prev_q_table"):
-            self._prev_q_table = np.copy(self.q_table)
-            return 0.0
-        max_change = np.max(np.abs(self.q_table - self._prev_q_table))
-        self._prev_q_table = np.copy(self.q_table)
-        return float(max_change)
+        return self.q_table
