@@ -209,47 +209,52 @@ pytest
 ## Architecture
 
 ```mermaid
+---
+config:
+  look: neo
+---
 flowchart TD
-    subgraph "Available Components"
-        direction LR
-        subgraph "Environments"
-            Env1["MountainCar-v0<br/>(mountain_car.py)"]
-            Env2["Montezuma's Revenge<br/>(montezumas_revenge.py)"]
-        end
-        subgraph "Shaping Methods"
-            S1["Potential-Based<br/>(potential_based.py)"]
-            S2["Naive Dense<br/>(naive_dense.py)"]
-            S3["No Shaping"]
-        end
-        subgraph "Agents"
-            A1["PPO<br/>(ppo.py)"]
-            A2["DQN<br/>(dqn.py)"]
-            A3["Q-Learning<br/>(q_learning.py)"]
-        end
-    end
-
-    subgraph "Execution Pipeline"
-        step1["1. Experiment Script selects Environment<br/>(e.g., MountainCar)"]
-        step1 --> step2["2. Apply Shaping Method<br/>(e.g., Potential-Based)"]
-        step2 --> step3["3. Initialize Agent<br/>(e.g., PPO)"]
-        step3 --> step4["4. Train Agent on Wrapped Env"]
-        step4 --> step5["5. Log to Weights & Biases"]
-    end
-
-    %% Styling
+ subgraph Environments["Environments"]
+        Env1["MountainCar-v0<br>(mountain_car.py)"]
+        Env2@{ label: "Montezuma's Revenge<br>(montezumas_revenge.py)" }
+  end
+ subgraph subGraph1["Shaping Methods"]
+        S1["Potential-Based<br>(potential_based.py)"]
+        S2["Naive Dense<br>(naive_dense.py)"]
+        S3["No Shaping"]
+  end
+ subgraph Agents["Agents"]
+        A1["PPO<br>(ppo.py)"]
+        A2["DQN<br>(dqn.py)"]
+        A3["Q-Learning<br>(q_learning.py)"]
+  end
+ subgraph subGraph3["Available Components"]
+    direction LR
+        Environments
+        subGraph1
+        Agents
+  end
+ subgraph subGraph4["Execution Pipeline"]
+        step1["Experiment Script selects Environment<br>(e.g. MountainCar)"]
+        step2["Apply Shaping Method<br>(e.g. Potential-Based)"]
+        step3["Initialize Agent<br>(e.g. PPO)"]
+        step4["Train Agent on Wrapped Env"]
+        step5["Log metrics to Weights &amp; Biases"]
+  end
+    step1 --> step2
+    step2 --> step3
+    step3 --> step4
+    step4 --> step5
+    Env2@{ shape: rect}
     style Env1 fill:#FDEDEC,stroke:#B03A2E,stroke-width:2px,color:#A93226
     style Env2 fill:#FDEDEC,stroke:#B03A2E,stroke-width:2px,color:#A93226
-    
     style S1 fill:#D5F5E3,stroke:#239B56,stroke-width:2px,color:#1D8348
     style S2 fill:#D5F5E3,stroke:#239B56,stroke-width:2px,color:#1D8348
     style S3 fill:#D5F5E3,stroke:#239B56,stroke-width:2px,color:#1D8348
-
     style A1 fill:#D6EAF8,stroke:#2874A6,stroke-width:2px,color:#21618C
     style A2 fill:#D6EAF8,stroke:#2874A6,stroke-width:2px,color:#21618C
     style A3 fill:#D6EAF8,stroke:#2874A6,stroke-width:2px,color:#21618C
 ```
-
-Note: PPO/DQN use `VecEnv/VecNormalize`; Q-Learning interacts with the wrapped env directly. Shaping wrappers log `env_reward`, `shaping_reward`, and `total_reward`.
 
 ---
 
