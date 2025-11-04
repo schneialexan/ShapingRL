@@ -25,12 +25,24 @@ from agents.q_learning import QLearningTrainer
 
 
 class ReducedActionSpaceWrapper(gym.ActionWrapper):
-    """Wrapper to reduce action space to a meaningful subset."""
+    """Wrapper to reduce action space to a meaningful subset.
+    
+
+    Note: Montezuma Revenge has 18 actions in total. The 'fire' action is a jump. 
+    """
+
+    action_sets = {
+        
+        'only_basic_movements': list(range(0, 6)), # NOOP, FIRE, UP, RIGHT, LEFT, DOWN
+        'extended_movements': list(range(0, 10)), # + [UP/DOWN][LEFT/RIGHT]
+        'extended_movements_fire': list(range(0, 14)), # + [UP/DOWN/LEFT/RIGHT]FIRE
+        # the 4 remaining actions are diagonal jumps
+    }
 
     def __init__(self, env, action_subset=None):
         super().__init__(env)
         if action_subset is None:
-            action_subset = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+            action_subset = self.action_sets['extended_movements_fire']
         self.action_subset = action_subset
         self.action_space = gym.spaces.Discrete(len(action_subset))
         self._action_mapping = {i: action_subset[i] for i in range(len(action_subset))}
