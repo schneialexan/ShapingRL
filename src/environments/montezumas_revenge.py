@@ -16,6 +16,7 @@ from stable_baselines3.common.vec_env import VecVideoRecorder
 
 from shaping.montezuma.naive_dense import NaiveDenseWrapper
 from shaping.montezuma.montezuma_potential_based import MontezumaPotentialBasedWrapper
+from training.coach import MontezumasKeyGuidelineCoach
 from util import PROJECT_ROOT_PATH
 
 # Add project root to Python path
@@ -75,7 +76,7 @@ def make_env(
         env = ReducedActionSpaceWrapper(env)
 
     if shaping == 'naive':
-        env = NaiveDenseWrapper(env)
+        env = NaiveDenseWrapper(env, guideline_coach=MontezumasKeyGuidelineCoach)
     elif shaping == 'potential':
         env = MontezumaPotentialBasedWrapper(env)
 
