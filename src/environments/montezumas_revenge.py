@@ -2,13 +2,16 @@ import argparse
 import glob
 
 import gymnasium as gym
-import ale_py
+import ale_py # must be there, do not remove !!!!!!!!!!!!!!!!!!!!!!!
 from datetime import datetime
 import wandb
 import os
 import sys
 from pathlib import Path
 from stable_baselines3.common.vec_env import VecVideoRecorder
+
+from shaping.montezuma.naive_dense import NaiveDenseWrapper
+from shaping.potential_based import PotentialBasedWrapper
 
 project_root_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', '..')
 
@@ -35,7 +38,12 @@ class ReducedActionSpaceWrapper(gym.ActionWrapper):
         return self._action_mapping[act]
 
 
-def make_env(env_name='ALE/MontezumaRevenge-v5', render_mode=None, reduce_action_space=False):
+def make_env(
+    env_name='ALE/MontezumaRevenge-v5',
+    render_mode=None,
+    reduce_action_space=False,
+    shaping='naive'
+):
     """Create Montezuma's Revenge environment with optional reduced action space."""
     try:
         env = gym.make(env_name, render_mode=render_mode)
@@ -50,17 +58,25 @@ def make_env(env_name='ALE/MontezumaRevenge-v5', render_mode=None, reduce_action
         env = gym.make(env_name, render_mode=render_mode)
     if reduce_action_space:
         env = ReducedActionSpaceWrapper(env)
+
+    if shaping == 'naive':
+        env = NaiveDenseWrapper(env)
+    elif shaping == 'potential':
+        env = PotentialBasedWrapper(env)
+
     return env
+
 
 def main(args=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--agent', choices=['ppo','dqn','q_learning'], default='ppo')
+    parser.add_argument('--agent', choices=['ppo', 'dqn', 'q_learning'], default='ppo')
     parser.add_argument('--timesteps', type=int, default=200_000)
     parser.add_argument('--project', type=str, default='ShapingRL-Montezuma')
     parser.add_argument('--entity', type=str, default=None)
     parser.add_argument('--render', action='store_true')
     parser.add_argument('--reduce_action_space', action='store_true')
     parser.add_argument('--run-name', type=str, default=None)
+    parser.add_argument('--shaping', type=str, default='naive')
     args = parser.parse_args() if args is None else args
 
     # Automatically set run name
@@ -77,8 +93,12 @@ def main(args=None):
 
     # Create environment
     render_mode = "human" if args.render else 'rgb_array'
-    env = make_env('ALE/MontezumaRevenge-v5', render_mode=render_mode,
-                   reduce_action_space=args.reduce_action_space)
+    env = make_env(
+        'ALE/MontezumaRevenge-v5',
+        render_mode=render_mode,
+        reduce_action_space=args.reduce_action_space,
+        shaping=wandb.config.shaping
+    )
     env.reset(seed=42)
 
     if args.reduce_action_space:
