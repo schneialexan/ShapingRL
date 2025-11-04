@@ -1,4 +1,6 @@
 import argparse
+import glob
+
 import gymnasium as gym
 import ale_py
 from datetime import datetime
@@ -6,6 +8,9 @@ import wandb
 import os
 import sys
 from pathlib import Path
+from stable_baselines3.common.vec_env import VecVideoRecorder
+
+project_root_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', '..')
 
 # Add project root to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -14,18 +19,21 @@ from agents.ppo import PPOTrainer
 from agents.dqn import DQNTrainer
 from agents.q_learning import QLearningTrainer
 
+
 class ReducedActionSpaceWrapper(gym.ActionWrapper):
     """Wrapper to reduce action space to a meaningful subset."""
+
     def __init__(self, env, action_subset=None):
         super().__init__(env)
         if action_subset is None:
-            action_subset = [1,2,3,4,5,6,7,8,9,10,11,12,13]
+            action_subset = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
         self.action_subset = action_subset
         self.action_space = gym.spaces.Discrete(len(action_subset))
         self._action_mapping = {i: action_subset[i] for i in range(len(action_subset))}
 
     def action(self, act):
         return self._action_mapping[act]
+
 
 def make_env(env_name='ALE/MontezumaRevenge-v5', render_mode=None, reduce_action_space=False):
     """Create Montezuma's Revenge environment with optional reduced action space."""
@@ -63,12 +71,14 @@ def main(args=None):
         project=args.project,
         entity=args.entity,
         name=run_name,
-        config=vars(args)
+        config=vars(args),
+        monitor_gym=True
     )
 
     # Create environment
-    render_mode = "human" if args.render else None
-    env = make_env('ALE/MontezumaRevenge-v5', render_mode=render_mode, reduce_action_space=args.reduce_action_space)
+    render_mode = "human" if args.render else 'rgb_array'
+    env = make_env('ALE/MontezumaRevenge-v5', render_mode=render_mode,
+                   reduce_action_space=args.reduce_action_space)
     env.reset(seed=42)
 
     if args.reduce_action_space:
@@ -82,11 +92,20 @@ def main(args=None):
     env = Monitor(env)
     vec_env = DummyVecEnv([lambda: env])
 
+    vec_env_wrapped_in_vec_video_recorder = VecVideoRecorder(
+        vec_env, f"videos/{run.id}",
+        record_video_trigger=lambda x: x % 200 == 0,
+        video_length=200,
+    )
+
     if args.agent == 'ppo':
-        vec_env = VecNormalize(vec_env, norm_obs=True, norm_reward=True, clip_obs=10.0)
-        trainer = PPOTrainer(vec_env, config={'total_timesteps': args.timesteps}, run=run)
+        vec_env = VecNormalize(vec_env_wrapped_in_vec_video_recorder, norm_obs=True,
+                               norm_reward=True, clip_obs=10.0)
+        trainer = PPOTrainer(vec_env_wrapped_in_vec_video_recorder,
+                             config={'total_timesteps': args.timesteps}, run=run)
     elif args.agent == 'dqn':
-        trainer = DQNTrainer(vec_env, config={'total_timesteps': args.timesteps}, run=run)
+        trainer = DQNTrainer(vec_env_wrapped_in_vec_video_recorder,
+                             config={'total_timesteps': args.timesteps}, run=run)
     else:
         # Approximate number of episodes for Q-learning
         trainer = QLearningTrainer(env, config={'total_episodes': args.timesteps // 200}, run=run)
@@ -100,7 +119,7 @@ def main(args=None):
     os.makedirs(save_dir, exist_ok=True)
     fname = os.path.join(save_dir, f'{args.agent}_montezuma_final')
     try:
-        if args.agent in ['ppo','dqn']:
+        if args.agent in ['ppo', 'dqn']:
             model_or_q.save(fname)
             wandb.save(fname)
         else:
@@ -113,9 +132,17 @@ def main(args=None):
     except Exception as e:
         print(f"Failed to save model: {e}")
 
+    video_files = sorted(
+        glob.glob(os.path.join(project_root_path, 'videos', wandb.run.id, '*.mp4'))
+    )
+
+    for path in video_files:
+        wandb.log({"gym_video": wandb.Video(path, caption=path, fps=30, format="mp4")})
+
     # Close environment
     env.close()
     run.finish()
+
 
 if __name__ == '__main__':
     main()

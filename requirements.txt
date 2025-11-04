@@ -28,5 +28,13 @@ pytest>=7.0.0
 black>=23.0.0
 flake8>=6.0.0
 
+# dependencies for enabling saving videos to wandb
+imageio==2.37.0
+imageio-ffmpeg==0.6.0
+moviepy==2.2.1
+pillow==11.3.0
+proglog==0.1.12
+python-dotenv==1.2.1
+
 # Stable Baselines3
 stable-baselines3[extra]

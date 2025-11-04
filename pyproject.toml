@@ -28,7 +28,7 @@ classifiers = [
 
 dependencies = [
     "torch>=2.0.0",
-    "gymnasium[atari,accept-rom-license]>=0.29.0",
+    "gymnasium[accept-rom-license,atari,box2d]>=0.29.0",
     "ale-py>=0.8.0",
     "pygame>=2.5.0",
     "numpy>=1.24.0",
@@ -39,6 +39,12 @@ dependencies = [
     "jupyter>=1.0.0",
     "tqdm>=4.65.0",
     "pyyaml>=6.0",
+    "wandb>=0.16.0",
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "stable-baselines3[extra]>=2.7.0",
+    "moviepy>=2.2.1",
 ]
 
 [project.optional-dependencies]
