@@ -92,10 +92,16 @@ class NaiveDenseWrapper(gym.Wrapper):
         guide_builder = GuideBuilder()
 
         self._checkpoints = (guide_builder.set_goal_go_to(
-            name="Right ladder, top",
+            name="Right ladder top",
             grid=8,
             cell=5,
             row=4,
+            n_times=100
+        ).then_set_goal_go_to(
+            name="Right ladder middle",
+            grid=8,
+            row=3,
+            cell=5,
             n_times=100
         ).then_set_goal_go_to(
             name="Right ladder bottom",
@@ -162,6 +168,7 @@ class NaiveDenseWrapper(gym.Wrapper):
         character_neck_x, character_neck_y = self._get_approximated_character_coords(obs)
 
         if (
+            (self._stop_checking_for_rewards_util_next_terminate_state == False) and
             (character_neck_x > self._current_watch_top_left_x) and
             (character_neck_x < self._current_watch_top_right_x) and
             (character_neck_y < self._current_watch_top_left_y) and
@@ -170,13 +177,21 @@ class NaiveDenseWrapper(gym.Wrapper):
             self._current_guide_item.visit()
 
             logger.info(
-                f'Reached goal pos for "{self._current_guide_item.name }" ({self._current_guide_item.n_times_visited}/{self._current_guide_item.n_times})'
+                f'Reached goal pos for "{self._current_guide_item.name}" ({self._current_guide_item.n_times_visited}/{self._current_guide_item.n_times})'
             )
 
             self._stop_checking_for_rewards_util_next_terminate_state = True
             return self._reach_guide_point_reward
+        elif (
+            (self._stop_checking_for_rewards_util_next_terminate_state == True) and
+            (character_neck_x > self._current_watch_top_left_x) and
+            (character_neck_x < self._current_watch_top_right_x) and
+            (character_neck_y < self._current_watch_top_left_y) and
+            (character_neck_y > self._current_watch_bottom_left_y)
+        ):
 
-        return 0
+            return 0
+        return -1
 
     def _get_approximated_character_position(self, obs) -> tuple[float, float]:
         """

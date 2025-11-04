@@ -1,6 +1,7 @@
 import argparse
 import glob
 import logging
+import re
 from contextlib import contextmanager
 
 import gymnasium as gym
@@ -15,8 +16,7 @@ from stable_baselines3.common.vec_env import VecVideoRecorder
 
 from shaping.montezuma.naive_dense import NaiveDenseWrapper
 from shaping.montezuma.montezuma_potential_based import MontezumaPotentialBasedWrapper
-
-project_root_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', '..')
+from util import PROJECT_ROOT_PATH
 
 # Add project root to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -35,9 +35,9 @@ class ReducedActionSpaceWrapper(gym.ActionWrapper):
 
     action_sets = {
 
-        'only_basic_movements': list(range(0, 6)), # NOOP, FIRE, UP, RIGHT, LEFT, DOWN
-        'extended_movements': list(range(0, 10)), # + [UP/DOWN][LEFT/RIGHT]
-        'extended_movements_fire': list(range(0, 14)), # + [UP/DOWN/LEFT/RIGHT]FIRE
+        'only_basic_movements': list(range(0, 6)),  # NOOP, FIRE, UP, RIGHT, LEFT, DOWN
+        'extended_movements': list(range(0, 10)),  # + [UP/DOWN][LEFT/RIGHT]
+        'extended_movements_fire': list(range(0, 14)),  # + [UP/DOWN/LEFT/RIGHT]FIRE
         # the 4 remaining actions are diagonal jumps
     }
 
@@ -80,6 +80,22 @@ def make_env(
         env = MontezumaPotentialBasedWrapper(env)
 
     return env
+
+
+def extract_steps(filename):
+    """
+    Extracts the two step numbers from a filename like:
+    'rl-video-step-1600-to-step-1800.mp4'
+
+    Returns:
+        tuple of two integers (start_step, end_step)
+        or None if no match is found.
+    """
+    match = re.search(r'step-(\d+)-to-step-(\d+)', filename)
+    if match:
+        start_step, end_step = map(int, match.groups())
+        return start_step, end_step
+    return None
 
 
 def main(args=None):
@@ -185,11 +201,15 @@ def main(args=None):
         print(f"Failed to save model: {e}")
 
     video_files = sorted(
-        glob.glob(os.path.join(project_root_path, 'videos', wandb.run.id, '*.mp4'))
+        glob.glob(os.path.join(PROJECT_ROOT_PATH, 'videos', wandb.run.id, '*.mp4'))
     )
 
     for path in video_files:
-        wandb.log({"gym_video": wandb.Video(path, caption=path, fps=30, format="mp4")})
+        start_step, end_step = extract_steps(path)
+        wandb.log(
+            {"gym_video": wandb.Video(path, caption=path, fps=30, format="mp4")},
+            step=end_step
+        )
 
     # Close environment
     env.close()

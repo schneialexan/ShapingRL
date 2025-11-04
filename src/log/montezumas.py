@@ -1,11 +1,12 @@
 import logging
-import os
-
-project_root_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', '..')
+from util import create_dir_if_not_exists, PROJECT_ROOT_PATH
 
 
 def configure_logging_for_montezumas(log_name):
-    log_root_dir = f'{project_root_path}/log'
+    log_root_dir = f'{PROJECT_ROOT_PATH}/log'
+
+    create_dir_if_not_exists(log_root_dir)
+
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
