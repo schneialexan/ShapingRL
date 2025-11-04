@@ -4,6 +4,7 @@ import glob
 import gymnasium as gym
 import ale_py  # must be there, do not remove !!!!!!!!!!!!!!!!!!!!!!!
 from datetime import datetime
+
 import wandb
 import os
 import sys
@@ -11,7 +12,7 @@ from pathlib import Path
 from stable_baselines3.common.vec_env import VecVideoRecorder
 
 from shaping.montezuma.naive_dense import NaiveDenseWrapper
-from shaping.potential_based import PotentialBasedWrapper
+from shaping.montezuma.montezuma_potential_based import MontezumaPotentialBasedWrapper
 
 project_root_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', '..')
 
@@ -62,7 +63,7 @@ def make_env(
     if shaping == 'naive':
         env = NaiveDenseWrapper(env)
     elif shaping == 'potential':
-        env = PotentialBasedWrapper(env)
+        env = MontezumaPotentialBasedWrapper(env)
 
     return env
 
