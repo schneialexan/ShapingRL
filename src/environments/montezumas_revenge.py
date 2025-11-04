@@ -2,7 +2,7 @@ import argparse
 import glob
 
 import gymnasium as gym
-import ale_py # must be there, do not remove !!!!!!!!!!!!!!!!!!!!!!!
+import ale_py  # must be there, do not remove !!!!!!!!!!!!!!!!!!!!!!!
 from datetime import datetime
 import wandb
 import os
@@ -70,10 +70,11 @@ def make_env(
 def main(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('--agent', choices=['ppo', 'dqn', 'q_learning'], default='ppo')
-    parser.add_argument('--timesteps', type=int, default=200_000)
+    parser.add_argument('--timesteps', type=int, default=2_000)
     parser.add_argument('--project', type=str, default='ShapingRL-Montezuma')
     parser.add_argument('--entity', type=str, default=None)
     parser.add_argument('--render', action='store_true')
+    parser.add_argument('--debug', action='store_true')
     parser.add_argument('--reduce_action_space', action='store_true')
     parser.add_argument('--run-name', type=str, default=None)
     parser.add_argument('--shaping', type=str, default='naive')
@@ -81,6 +82,9 @@ def main(args=None):
 
     # Automatically set run name
     run_name = args.run_name if args.run_name else f"{args.agent}_montezuma"
+
+    if args.debug:
+        os.environ["WANDB_MODE"] = "offline"
 
     # Initialize Weights & Biases
     run = wandb.init(
@@ -112,20 +116,32 @@ def main(args=None):
     env = Monitor(env)
     vec_env = DummyVecEnv([lambda: env])
 
-    vec_env_wrapped_in_vec_video_recorder = VecVideoRecorder(
-        vec_env, f"videos/{run.id}",
-        record_video_trigger=lambda x: x % 200 == 0,
-        video_length=200,
-    )
+    if not args.render:
+        print('Saving videos!!!!!!!!!!')
+        vec_env = VecVideoRecorder(
+            vec_env, f"videos/{run.id}",
+            record_video_trigger=lambda x: x % 200 == 0,
+            video_length=200,
+        )
 
     if args.agent == 'ppo':
-        vec_env = VecNormalize(vec_env_wrapped_in_vec_video_recorder, norm_obs=True,
-                               norm_reward=True, clip_obs=10.0)
-        trainer = PPOTrainer(vec_env_wrapped_in_vec_video_recorder,
-                             config={'total_timesteps': args.timesteps}, run=run)
+        vec_env = VecNormalize(
+            vec_env,
+            norm_obs=True,
+            norm_reward=True,
+            clip_obs=10.0
+        )
+        trainer = PPOTrainer(
+            vec_env,
+            config={'total_timesteps': args.timesteps},
+            run=run
+        )
     elif args.agent == 'dqn':
-        trainer = DQNTrainer(vec_env_wrapped_in_vec_video_recorder,
-                             config={'total_timesteps': args.timesteps}, run=run)
+        trainer = DQNTrainer(
+            vec_env,
+            config={'total_timesteps': args.timesteps},
+            run=run
+        )
     else:
         # Approximate number of episodes for Q-learning
         trainer = QLearningTrainer(env, config={'total_episodes': args.timesteps // 200}, run=run)
