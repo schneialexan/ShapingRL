@@ -1,3 +1,4 @@
+import logging
 from collections import deque
 from copy import copy
 from typing import Self, List
@@ -5,8 +6,13 @@ from typing import Self, List
 import gymnasium as gym
 import numpy as np
 
+from log.montezumas import configure_logging_for_montezumas
+
 game_image_frame_height = 210
 game_image_frame_width = 160
+
+configure_logging_for_montezumas('guide_shaper')
+logger = logging.getLogger(__name__)
 
 
 class GuideItem:
@@ -39,8 +45,8 @@ class GuideBuilder:
         self,
         name: str,
         grid: int,
-        cell: int,
         row: int,
+        cell: int,
         n_times: int = 1
     ) -> Self:
         self._checkpoints.append(
@@ -53,8 +59,8 @@ class GuideBuilder:
         self,
         name: str,
         grid: int,
-        cell: int,
         row: int,
+        cell: int,
         n_times: int = 1
     ) -> Self:
         self.set_goal_go_to(
@@ -85,19 +91,31 @@ class NaiveDenseWrapper(gym.Wrapper):
 
         guide_builder = GuideBuilder()
 
-        self._checkpoints = guide_builder.set_goal_go_to(
+        self._checkpoints = (guide_builder.set_goal_go_to(
             name="Right ladder, top",
             grid=8,
             cell=5,
-            row=5,
+            row=4,
+            n_times=100
+        ).then_set_goal_go_to(
+            name="Right ladder bottom",
+            grid=8,
+            row=2,
+            cell=5,
             n_times=100
         ).then_set_goal_go_to(
             name="Right ladder bottom with little offset left",
             grid=8,
-            row=7,
+            row=2,
             cell=4,
             n_times=100
-        ).build()
+        ).then_set_goal_go_to(
+            name="Left ladder bottom",
+            grid=8,
+            row=2,
+            cell=1,
+            n_times=100
+        ).build())
 
         self._current_guide_item: GuideItem | None = None
 
@@ -122,7 +140,7 @@ class NaiveDenseWrapper(gym.Wrapper):
         if (self._current_guide_item is None) or self._current_guide_item.is_completed:
             self._current_guide_item = self._checkpoints.popleft()
 
-            print(f'using new guide point {self._current_guide_item.name = }')
+            logger.info(f'using new guide point with name "{self._current_guide_item.name}"')
 
             grid_cell_width = game_image_frame_width / self._current_guide_item.grid
             grid_cell_height = game_image_frame_height / self._current_guide_item.grid
@@ -151,8 +169,8 @@ class NaiveDenseWrapper(gym.Wrapper):
         ):
             self._current_guide_item.visit()
 
-            print(
-                f'Reached goal pos yes!!!!!!!!!!! ({self._current_guide_item.n_times_visited}/{self._current_guide_item.n_times})'
+            logger.info(
+                f'Reached goal pos for "{self._current_guide_item.name }" ({self._current_guide_item.n_times_visited}/{self._current_guide_item.n_times})'
             )
 
             self._stop_checking_for_rewards_util_next_terminate_state = True
@@ -220,10 +238,10 @@ class NaiveDenseWrapper(gym.Wrapper):
         info['total_reward'] = total_reward
 
         if truncated:
-            print('truncated!!!!!!!')
+            logger.debug('truncated!!!!!!!')
 
         if terminated:
-            print('Terminated => checking for reaching guide pose again')
+            logger.debug('Terminated => checking for reaching guide pose again')
             self._stop_checking_for_rewards_util_next_terminate_state = False
 
         return obs, total_reward, terminated, truncated, info

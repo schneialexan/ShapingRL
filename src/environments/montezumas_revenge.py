@@ -1,5 +1,7 @@
 import argparse
 import glob
+import logging
+from contextlib import contextmanager
 
 import gymnasium as gym
 import ale_py  # must be there, do not remove !!!!!!!!!!!!!!!!!!!!!!!
@@ -26,13 +28,13 @@ from agents.q_learning import QLearningTrainer
 
 class ReducedActionSpaceWrapper(gym.ActionWrapper):
     """Wrapper to reduce action space to a meaningful subset.
-    
 
-    Note: Montezuma Revenge has 18 actions in total. The 'fire' action is a jump. 
+
+    Note: Montezuma Revenge has 18 actions in total. The 'fire' action is a jump.
     """
 
     action_sets = {
-        
+
         'only_basic_movements': list(range(0, 6)), # NOOP, FIRE, UP, RIGHT, LEFT, DOWN
         'extended_movements': list(range(0, 10)), # + [UP/DOWN][LEFT/RIGHT]
         'extended_movements_fire': list(range(0, 14)), # + [UP/DOWN/LEFT/RIGHT]FIRE
@@ -131,6 +133,7 @@ def main(args=None):
 
     if not args.render:
         print('Saving videos!!!!!!!!!!')
+
         vec_env = VecVideoRecorder(
             vec_env, f"videos/{run.id}",
             record_video_trigger=lambda x: x % 200 == 0,
