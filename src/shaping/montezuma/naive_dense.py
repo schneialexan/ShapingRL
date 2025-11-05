@@ -88,7 +88,6 @@ class NaiveDenseWrapper(gym.Wrapper):
             logger.debug('truncated!!!!!!!')
 
         if terminated:
-            logger.debug('Terminated => checking for reaching guide pose again')
             self._guideline_coach.on_episode_termination()
 
         return obs, total_reward, terminated, truncated, info

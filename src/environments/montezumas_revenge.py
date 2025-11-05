@@ -16,7 +16,7 @@ from stable_baselines3.common.vec_env import VecVideoRecorder
 
 from shaping.montezuma.naive_dense import NaiveDenseWrapper
 from shaping.montezuma.montezuma_potential_based import MontezumaPotentialBasedWrapper
-from training.coach import MontezumasKeyGuidelineCoach
+from training.coach import MontezumasKeyGuidelineCoach, MontezumasKeyGuidelineCoachForcingOrder
 from util import PROJECT_ROOT_PATH
 
 # Add project root to Python path
@@ -76,7 +76,11 @@ def make_env(
         env = ReducedActionSpaceWrapper(env)
 
     if shaping == 'naive':
-        env = NaiveDenseWrapper(env, guideline_coach=MontezumasKeyGuidelineCoach)
+        env = NaiveDenseWrapper(
+            env,
+            #    guideline_coach=MontezumasKeyGuidelineCoach
+            guideline_coach=MontezumasKeyGuidelineCoachForcingOrder
+        )
     elif shaping == 'potential':
         env = MontezumaPotentialBasedWrapper(env)
 
@@ -154,7 +158,7 @@ def main(args=None):
         vec_env = VecVideoRecorder(
             vec_env, f"videos/{run.id}",
             record_video_trigger=lambda x: x % 200 == 0,
-            video_length=200,
+            video_length=1000,
         )
 
     if args.agent == 'ppo':
@@ -208,8 +212,11 @@ def main(args=None):
     for path in video_files:
         start_step, end_step = extract_steps(path)
         wandb.log(
-            {"gym_video": wandb.Video(path, caption=path, fps=30, format="mp4")},
-            step=end_step
+            {
+                "gym_video": wandb.Video(path, caption='Video', fps=30, format="mp4"),
+                "gym_video_start_step": start_step,
+                "gym_video_end_step": end_step
+            }
         )
 
     # Close environment
