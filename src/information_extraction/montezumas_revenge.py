@@ -12,7 +12,7 @@ class MontezumasInformationExtractor(ABC):
 
     @staticmethod
     def draw_rect(x, y, width, height, ax, label_top=None, edgecolor='red', fill_color=None):
-        # Rectangle: (x, y) is bottom-left corner
+        # Rectangle: (x, y) is top-left corner
 
         additional_params_rect = {}
         if fill_color is not None:
@@ -36,10 +36,8 @@ class MontezumasInformationExtractor(ABC):
             x + 1, MontezumasInformationExtractor.GAME_IMAGE_FRAME_HEIGHT - y - 3, label_top,
             color='lime',
             fontsize=6,
-            # backgroundcolor='black'
         )
 
-        # Add the rectangle to the Axes
         ax.add_patch(rect)
 
         return ax
