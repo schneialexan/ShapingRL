@@ -56,11 +56,12 @@ class MontezumaPotentialBasedWrapper(gym.Wrapper):
         return (1 - beta_x) * abs(pos1[0] - pos2[0]) + beta_x * abs(pos1[1] - pos2[1])
     
 
-    def _potential(self, obs):
+    def _potential(self, obs) -> float:
         character_neck_rgb = np.array([228, 111, 111])
         character_coords = self._get_rgb_position(obs, character_neck_rgb)
         
-        return -self._manhattan_distance(character_coords, self._key_coords, 1.0)
+        # Lets put emphasis on x axis (with beta_x) to reduce penalty of descending into pit
+        return -self._manhattan_distance(character_coords, self._key_coords, 0.7)
 
 
     def step(self, action):
