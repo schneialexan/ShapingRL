@@ -2,25 +2,33 @@ import gymnasium as gym
 import numpy as np
 
 class MontezumaPotentialBasedWrapper(gym.Wrapper):
-    def __init__(self, env, gamma=0.99):
+    def __init__(self, env, gamma=0.99, debugging=False):
         super().__init__(env)
         self.gamma = gamma
+        self.debugging = debugging
         self.last_potential = None
         self.last_shaping = 0.0
         self._key_coords = (112,16) # Determined statically (for level 1)
 
     @staticmethod
-    def _prRed(s): print("\033[91m {}\033[00m".format(s))
+    def _prRed(s): print("\033[91m {}\033[00m".format(s), end="")
     @staticmethod
-    def _prGreen(s): print("\033[92m {}\033[00m".format(s))
+    def _prGreen(s): print("\033[92m {}\033[00m".format(s), end="")
     @staticmethod
-    def _console_log_reward(reward:float):
+    def _console_log_reward(reward:float, shaping_reward:float):
+        print("Reward: ", end="")
         if reward >= 0:
-            print("Shaping Reward: ", end="")
             MontezumaPotentialBasedWrapper._prGreen(f"{reward:.2f}")
         else:
-            print("Shaping Reward: ", end="")
             MontezumaPotentialBasedWrapper._prRed(f"{reward:.2f}")
+
+        print(" Shaping Reward: ", end="")
+        if shaping_reward >= 0:
+            MontezumaPotentialBasedWrapper._prGreen(f"{shaping_reward:.2f}")
+        else:
+            MontezumaPotentialBasedWrapper._prRed(f"{shaping_reward:.2f}")
+
+        print() # new line 
 
     def _get_rgb_position(self, obs, rgb_of_object) -> tuple[float, float]:
         # code mostly adopted from coach.py
@@ -62,8 +70,9 @@ class MontezumaPotentialBasedWrapper(gym.Wrapper):
         shaping_reward = 0.0
         if self.last_potential is not None:
             shaping_reward = self.gamma * phi_next - self.last_potential
-
-        self._console_log_reward(shaping_reward)
+        
+        if self.debugging:
+            self._console_log_reward(reward,shaping_reward)
 
         total_reward = reward + shaping_reward
         self.last_potential = phi_next

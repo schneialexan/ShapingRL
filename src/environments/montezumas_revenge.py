@@ -58,7 +58,8 @@ def make_env(
     env_name='ALE/MontezumaRevenge-v5',
     render_mode=None,
     reduce_action_space=False,
-    shaping='naive'
+    shaping='naive',
+    debugging=False
 ):
     """Create Montezuma's Revenge environment with optional reduced action space."""
     try:
@@ -82,7 +83,11 @@ def make_env(
             guideline_coach=MontezumasKeyGuidelineCoachForcingOrder
         )
     elif shaping == 'potential':
-        env = MontezumaPotentialBasedWrapper(env)
+        env = MontezumaPotentialBasedWrapper(
+            env,
+            gamma=0.99,
+            debugging=debugging
+        )
 
     return env
 
@@ -137,7 +142,8 @@ def main(args=None):
         'ALE/MontezumaRevenge-v5',
         render_mode=render_mode,
         reduce_action_space=args.reduce_action_space,
-        shaping=wandb.config.shaping
+        shaping=wandb.config.shaping,
+        debugging=args.debug
     )
     env.reset(seed=42)
 
