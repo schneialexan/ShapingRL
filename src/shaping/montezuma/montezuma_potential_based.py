@@ -9,6 +9,7 @@ class MontezumaPotentialBasedWrapper(gym.Wrapper):
         self.last_potential = None
         self.last_shaping = 0.0
         self._key_coords = (112,16) # Determined statically (for level 1)
+        self._obs_dimensions = None
 
     @staticmethod
     def _prRed(s): print("\033[91m {}\033[00m".format(s), end="")
@@ -46,22 +47,28 @@ class MontezumaPotentialBasedWrapper(gym.Wrapper):
         v, u = index_min
 
         return v, u
+    
+    def _get_dimensions(self, obs) -> tuple[int, int]:
+        return obs.shape[0], obs.shape[1]
 
-    def _manhattan_distance(self, pos1, pos2, beta_x=0.5):
+    def _manhattan_distance(self, pos1, pos2, obs_dimensions, beta_x=0.5):
         """
         Weighted Manhattan distance.
         beta_x weights the reward for x-axis, which can be used if one axis is more important than the other.
         beta_y is (1 - beta_x). Note that we use y,x coords here. 
         """
-        return (1 - beta_x) * abs(pos1[0] - pos2[0]) + beta_x * abs(pos1[1] - pos2[1])
+        return ((1 - beta_x) * abs(pos1[0] - pos2[0]) + beta_x * abs(pos1[1] - pos2[1])) / (obs_dimensions[0] + obs_dimensions[1])
     
 
     def _potential(self, obs, scaling=1e-2) -> float:
         character_neck_rgb = np.array([228, 111, 111])
         character_coords = self._get_rgb_position(obs, character_neck_rgb)
+
+        if not self._obs_dimensions:
+            self._obs_dimensions = self._get_dimensions(obs)
         
         # Lets put emphasis on x axis (with beta_x) to reduce penalty of descending into pit
-        return -self._manhattan_distance(character_coords, self._key_coords, 0.7) * scaling
+        return -self._manhattan_distance(character_coords, self._key_coords, self._obs_dimensions, 0.7) * scaling
 
 
     def step(self, action):
