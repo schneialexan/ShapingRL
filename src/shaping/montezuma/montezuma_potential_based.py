@@ -19,15 +19,15 @@ class MontezumaPotentialBasedWrapper(gym.Wrapper):
     def _console_log_reward(reward:float, shaping_reward:float):
         print("Reward: ", end="")
         if reward >= 0:
-            MontezumaPotentialBasedWrapper._prGreen(f"{reward:.2f}")
+            MontezumaPotentialBasedWrapper._prGreen(f"{reward:.3f}")
         else:
-            MontezumaPotentialBasedWrapper._prRed(f"{reward:.2f}")
+            MontezumaPotentialBasedWrapper._prRed(f"{reward:.3f}")
 
         print(" Shaping Reward: ", end="")
         if shaping_reward >= 0:
-            MontezumaPotentialBasedWrapper._prGreen(f"{shaping_reward:.2f}")
+            MontezumaPotentialBasedWrapper._prGreen(f"{shaping_reward:.3f}")
         else:
-            MontezumaPotentialBasedWrapper._prRed(f"{shaping_reward:.2f}")
+            MontezumaPotentialBasedWrapper._prRed(f"{shaping_reward:.3f}")
 
         print() # new line 
 
@@ -60,7 +60,7 @@ class MontezumaPotentialBasedWrapper(gym.Wrapper):
         return ((1 - beta_x) * abs(pos1[0] - pos2[0]) + beta_x * abs(pos1[1] - pos2[1])) / (obs_dimensions[0] + obs_dimensions[1])
     
 
-    def _potential(self, obs, scaling=1e-2) -> float:
+    def _potential(self, obs, scaling=1) -> float:
         character_neck_rgb = np.array([228, 111, 111])
         character_coords = self._get_rgb_position(obs, character_neck_rgb)
 
