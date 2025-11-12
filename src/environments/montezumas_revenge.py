@@ -16,6 +16,7 @@ from stable_baselines3.common.vec_env import VecVideoRecorder
 
 from shaping.montezuma.naive_dense import NaiveDenseWrapper
 from shaping.montezuma.montezuma_potential_based import MontezumaPotentialBasedWrapper
+from shaping.montezuma.test import TestDenseWrapper
 from training.coach import MontezumasKeyGuidelineCoach, MontezumasKeyGuidelineCoachForcingOrder
 from util import PROJECT_ROOT_PATH
 
@@ -58,7 +59,7 @@ def make_env(
     env_name='ALE/MontezumaRevenge-v5',
     render_mode=None,
     reduce_action_space=False,
-    shaping='naive'
+    shaping='test'
 ):
     """Create Montezuma's Revenge environment with optional reduced action space."""
     try:
@@ -68,7 +69,7 @@ def make_env(
         register(
             id=env_name,
             entry_point="ale_py.roms:MontezumaRevenge",
-            max_episode_steps=20000,
+            max_episode_steps=4_000,
             reward_threshold=3000.0,
         )
         env = gym.make(env_name, render_mode=render_mode)
@@ -78,11 +79,13 @@ def make_env(
     if shaping == 'naive':
         env = NaiveDenseWrapper(
             env,
-            #    guideline_coach=MontezumasKeyGuidelineCoach
+            # guideline_coach=MontezumasKeyGuidelineCoach
             guideline_coach=MontezumasKeyGuidelineCoachForcingOrder
         )
     elif shaping == 'potential':
         env = MontezumaPotentialBasedWrapper(env)
+    elif shaping == 'test':
+        env = TestDenseWrapper(env)
 
     return env
 
@@ -113,7 +116,7 @@ def main(args=None):
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--reduce_action_space', action='store_true')
     parser.add_argument('--run-name', type=str, default=None)
-    parser.add_argument('--shaping', type=str, default='naive')
+    parser.add_argument('--shaping', type=str, default='test')
     args = parser.parse_args() if args is None else args
 
     # Automatically set run name
@@ -166,7 +169,8 @@ def main(args=None):
             vec_env,
             norm_obs=True,
             norm_reward=True,
-            clip_obs=10.0
+            clip_obs=255,
+            clip_reward=500
         )
         trainer = PPOTrainer(
             vec_env,

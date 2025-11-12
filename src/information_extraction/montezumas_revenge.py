@@ -43,12 +43,9 @@ class MontezumasInformationExtractor(ABC):
         return ax
 
     @staticmethod
-    def get_health(obs: np.array):
+    def get_number_of_lives(obs: np.array):
         # Display it using matplotlib
-        fig, ax = plt.subplots()
-        ax.imshow(obs)
-        ax.axis('off')  # hide axes
-        fig.tight_layout()
+
 
         rect_size = 5
 
@@ -63,6 +60,12 @@ class MontezumasInformationExtractor(ABC):
             (base_x + 11, y),
         ]
 
+
+
+        # fig, ax = plt.subplots()
+        # ax.imshow(obs)
+        # ax.axis('off')  # hide axes
+        # fig.tight_layout()
         # for index, (x, y) in enumerate(positions):
         #     MontezumasInformationExtractor.draw_rect(
         #         x,
@@ -86,7 +89,8 @@ class MontezumasInformationExtractor(ABC):
 
         return 0
 
-    def get_approximated_character_position(self, obs) -> tuple[float, float]:
+    @staticmethod
+    def get_approximated_character_position(obs) -> tuple[float, float]:
         """
         Returns v and u, where v is the number of vertical pixels from the top left corner of the image
         and u the number of horizontal pixels from the top left corner
@@ -118,8 +122,9 @@ class MontezumasInformationExtractor(ABC):
 
         return v, u
 
-    def get_approximated_character_coords(self, obs):
-        v, u = MontezumasInformationExtractor.get_approximated_character_position(obs)
+    @staticmethod
+    def get_approximated_character_coords(obs):
+        v, u = MontezumasInformationExtractor.get_approximated_character_position(obs,)
         # obs.shape =  (210, 160, 3)
 
         x = u

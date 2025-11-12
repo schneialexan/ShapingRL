@@ -15,7 +15,7 @@ class TestMontezumasInformationExtractorTest(unittest.TestCase):
             os.path.join(PROJECT_ROOT_PATH, 'tests', 'information_extraction', 'frames',
                          'montezumas', '5_lives.png')
         ))
-        n_lives = MontezumasInformationExtractor.get_health(img)
+        n_lives = MontezumasInformationExtractor.get_number_of_lives(img)
 
         self.assertEqual(5, n_lives)
 
@@ -24,7 +24,7 @@ class TestMontezumasInformationExtractorTest(unittest.TestCase):
             os.path.join(PROJECT_ROOT_PATH, 'tests', 'information_extraction', 'frames',
                          'montezumas', '4_lives.png')
         ))
-        n_lives = MontezumasInformationExtractor.get_health(img)
+        n_lives = MontezumasInformationExtractor.get_number_of_lives(img)
 
         self.assertEqual(4, n_lives)
 
@@ -33,7 +33,7 @@ class TestMontezumasInformationExtractorTest(unittest.TestCase):
             os.path.join(PROJECT_ROOT_PATH, 'tests', 'information_extraction', 'frames',
                          'montezumas', '3_lives.png')
         ))
-        n_lives = MontezumasInformationExtractor.get_health(img)
+        n_lives = MontezumasInformationExtractor.get_number_of_lives(img)
 
         self.assertEqual(3, n_lives)
 
@@ -42,7 +42,7 @@ class TestMontezumasInformationExtractorTest(unittest.TestCase):
             os.path.join(PROJECT_ROOT_PATH, 'tests', 'information_extraction', 'frames',
                          'montezumas', '2_lives.png')
         ))
-        n_lives = MontezumasInformationExtractor.get_health(img)
+        n_lives = MontezumasInformationExtractor.get_number_of_lives(img)
 
         self.assertEqual(2, n_lives)
 
@@ -51,7 +51,7 @@ class TestMontezumasInformationExtractorTest(unittest.TestCase):
             os.path.join(PROJECT_ROOT_PATH, 'tests', 'information_extraction', 'frames',
                          'montezumas', '1_lives.png')
         ))
-        n_lives = MontezumasInformationExtractor.get_health(img)
+        n_lives = MontezumasInformationExtractor.get_number_of_lives(img)
 
         self.assertEqual(1, n_lives)
 
@@ -60,6 +60,6 @@ class TestMontezumasInformationExtractorTest(unittest.TestCase):
             os.path.join(PROJECT_ROOT_PATH, 'tests', 'information_extraction', 'frames',
                          'montezumas', '0_lives.png')
         ))
-        n_lives = MontezumasInformationExtractor.get_health(img)
+        n_lives = MontezumasInformationExtractor.get_number_of_lives(img)
 
         self.assertEqual(0, n_lives)
