@@ -102,3 +102,5 @@ data/processed/
 *.bak
 *.swp
 *~
+
+img_debug
