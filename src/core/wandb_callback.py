@@ -1,15 +1,18 @@
 from stable_baselines3.common.callbacks import BaseCallback
 from core.logger import AgentLogger
 
+
 class WandbCallback(BaseCallback):
     """SB3 callback to log episode stats + shaping influence + SB3 metrics."""
+
     def __init__(self, run=None, verbose=0):
         super().__init__(verbose)
-        self._agent_logger  = AgentLogger(run)
+        self._agent_logger = AgentLogger(run)
         self.env_rewards = []
         self.shaping_rewards = []
         self.total_rewards = []
         self.nr_episode = 0
+        self._step_counter = 0
 
     def _on_step(self) -> bool:
         infos = self.locals.get('infos', [{}])
@@ -20,17 +23,20 @@ class WandbCallback(BaseCallback):
                 self.shaping_rewards.append(info['shaping_reward'])
                 self.total_rewards.append(info['total_reward'])
                 metrics = {
-                    "env_reward": self.env_rewards,
-                    "shaping_reward": self.shaping_rewards,
-                    "total_reward": self.total_rewards
+                    "env_step": self._step_counter,
+                    "env_reward": self.env_rewards[-1],
+                    "shaping_reward": self.shaping_rewards[-1],
+                    "total_reward": self.total_rewards[-1]
                 }
                 self._agent_logger.log_metrics(metrics)
 
             # Episode ended --> log metrics
             if 'episode' in info:
                 ep_info = info['episode']
-                avg_shaping_reward = (sum(self.shaping_rewards) / len(self.shaping_rewards)) if self.shaping_rewards else 0
-                avg_total_reward   = (sum(self.total_rewards) / len(self.total_rewards)) if self.total_rewards else 0
+                avg_shaping_reward = (sum(self.shaping_rewards) / len(
+                    self.shaping_rewards)) if self.shaping_rewards else 0
+                avg_total_reward = (sum(self.total_rewards) / len(
+                    self.total_rewards)) if self.total_rewards else 0
                 # SB3 metrics
                 sb3_logs = getattr(self.model.logger, 'name_to_value', {})
                 metrics = {
@@ -55,4 +61,5 @@ class WandbCallback(BaseCallback):
                 self.env_rewards.clear()
                 self.shaping_rewards.clear()
                 self.total_rewards.clear()
+        self._step_counter += 1
         return True

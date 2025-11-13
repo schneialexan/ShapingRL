@@ -6,7 +6,8 @@ import gymnasium as gym
 import numpy as np
 import wandb
 
-from information_extraction.montezumas_revenge import MontezumasInformationExtractor
+from information_extraction.montezumas_revenge import MontezumasInformationExtractor, \
+    MontezumasRAMInformationExtractor
 from log.montezumas import configure_logging_for_montezumas
 from util import PROJECT_ROOT_PATH, create_dir_if_not_exists
 
@@ -18,6 +19,9 @@ class TestDenseWrapper(gym.Wrapper):
 
     def __init__(self, env, n_grid_items_horizontal=7, n_grid_items_vertical=10):
         super().__init__(env)
+
+        self._info_extractor = MontezumasRAMInformationExtractor(self)
+
         self._last_agent_pos: np.array = None
         self._last_agent_n_lives: int = 5
         self._visited_pos = defaultdict(lambda: False)
@@ -68,7 +72,7 @@ class TestDenseWrapper(gym.Wrapper):
         alpha = rgba_color[3] / 255.0
         cv2.addWeighted(overlay, alpha, obs, 1 - alpha, 0, obs)
 
-    def _save_obs(self, obs, description, debug=False):
+    def _save_obs(self, obs, description, debug=False, player_pos=None):
         img_dir = f'{PROJECT_ROOT_PATH}/img_debug/{wandb.run.id}/{self._episode_counter:05}_episode_{5 - self._last_agent_n_lives}_lost_lifes/'
         create_dir_if_not_exists(img_dir)
 
@@ -100,6 +104,30 @@ class TestDenseWrapper(gym.Wrapper):
 
         cv2.putText(obs, text, position, font, font_scale, color, thickness, cv2.LINE_AA)
 
+        if player_pos is not None:
+            # cv2.rectangle(
+            #     obs,
+            #     (25, 25),
+            #     (50, 50),
+            #     [255, 0, 0], 1
+            # )
+
+            y = MontezumasInformationExtractor.GAME_IMAGE_FRAME_HEIGHT - player_pos[1]
+            bounding_box_width = 11
+            bounding_box_height = 21
+            top_left = (player_pos[0] - (bounding_box_width // 2), y - (bounding_box_height // 2))
+            bottom_right = (
+                int(player_pos[0] + (bounding_box_width // 2)),
+                int(y + (bounding_box_height // 2))
+            )
+
+            cv2.rectangle(
+                obs,
+                top_left,
+                bottom_right,
+                [255, 0, 0], 1
+            )
+
         obs = cv2.cvtColor(obs, cv2.COLOR_RGB2BGR)
 
         cv2.imwrite(f'{img_dir}/{self._step_counter:05}_color_img.jpg', obs)
@@ -110,15 +138,15 @@ class TestDenseWrapper(gym.Wrapper):
 
     def _reset_life_grid_state(self):
         self._room_life_grid = {
-            f'{r},{c}': False for c in range(self._n_grid_items_horizontal) for r in
-            range(self._n_grid_items_vertical)
+            f'{r},{c}': False for c in range(self._n_grid_items_horizontal + 1) for r in
+            range(self._n_grid_items_vertical + 1)
         }
 
     def _reset_grid_reward_states(self):
 
         self._room_grid = {
-            f'{r},{c}': False for c in range(self._n_grid_items_horizontal) for r in
-            range(self._n_grid_items_vertical)
+            f'{r},{c}': False for c in range(self._n_grid_items_horizontal + 1) for r in
+            range(self._n_grid_items_vertical + 1)
         }
 
         self._reset_life_grid_state()
@@ -145,9 +173,17 @@ class TestDenseWrapper(gym.Wrapper):
         agent_died = False
         is_respawning = False
 
-        n_lives = MontezumasInformationExtractor.get_number_of_lives(obs)
+        ram_player_position = self._info_extractor.get_player_position()
+        ram_player_lives = self._info_extractor.get_player_number_of_lives()
+        ram_room = self._info_extractor.get_room_id()
 
-        agent_pos = np.array(MontezumasInformationExtractor.get_approximated_character_coords(obs))
+        # n_lives = MontezumasInformationExtractor.get_number_of_lives(obs)
+        # agent_pos = np.array(MontezumasInformationExtractor.get_approximated_character_coords(obs))
+
+        n_lives = ram_player_lives
+        agent_pos = np.array(ram_player_position)
+
+        #self._save_obs(obs, "test position", False, player_pos=ram_player_position)
 
         if self._die_position is not None:
             distance_to_die_pos = np.linalg.norm(
@@ -157,23 +193,23 @@ class TestDenseWrapper(gym.Wrapper):
             if distance_to_die_pos != 0:
                 self._die_position = None
                 self._last_agent_pos = agent_pos
-                logger.info(f'{self._step_counter}: respawned')
+                # logger.info(f'{self._step_counter}: respawned')
                 self._save_obs(obs, 'agent respawned!')
             else:
-                logger.info(f'{self._step_counter}: respawning')
                 is_respawning = True
+                # logger.info(f'{self._step_counter}: respawning')
 
         grid_column = int(agent_pos[0] // self._horizontal_spacing)
         grid_row = int(agent_pos[1] // self._vertical_spacing)
 
         if n_lives < self._last_agent_n_lives:
             agent_died = True
-            logger.info(f'{self._step_counter}: agent died {self._last_agent_n_lives} => {n_lives}')
+            # logger.info(f'{self._step_counter}: agent died {self._last_agent_n_lives} => {n_lives}')
             shaping_reward += self._die_reward
         if (not self._room_grid[f'{grid_row},{grid_column}']) and (not agent_died):
             shaping_reward += self._explored_new_grid_item_reward
         elif (self._room_life_grid[f'{grid_row},{grid_column}']) and (not agent_died):
-            #shaping_reward += -0.0001
+            # shaping_reward += -0.0001
             shaping_reward += -0.001
 
         self._room_grid[f'{grid_row},{grid_column}'] = True
@@ -204,7 +240,7 @@ class TestDenseWrapper(gym.Wrapper):
             self._falling_distance = 0
             shaping_reward += self._fall_reward
             self._save_obs(obs, 'punish falling')
-            logger.info(f'{self._step_counter}: falling more than 4 steps')
+            # logger.info(f'{self._step_counter}: falling more than 4 steps')
 
         if agent_died:
             self._last_agent_pos = None

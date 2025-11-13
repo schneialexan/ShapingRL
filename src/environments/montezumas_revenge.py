@@ -8,10 +8,13 @@ import gymnasium as gym
 import ale_py  # must be there, do not remove !!!!!!!!!!!!!!!!!!!!!!!
 from datetime import datetime
 
+import numpy as np
 import wandb
 import os
 import sys
 from pathlib import Path
+
+from gymnasium import ObservationWrapper
 from stable_baselines3.common.vec_env import VecVideoRecorder
 
 from shaping.montezuma.naive_dense import NaiveDenseWrapper
@@ -55,6 +58,9 @@ class ReducedActionSpaceWrapper(gym.ActionWrapper):
         return self._action_mapping[act]
 
 
+
+
+
 def make_env(
     env_name='ALE/MontezumaRevenge-v5',
     render_mode=None,
@@ -64,7 +70,11 @@ def make_env(
 ):
     """Create Montezuma's Revenge environment with optional reduced action space."""
     try:
-        env = gym.make(env_name, render_mode=render_mode)
+        env = gym.make(
+            env_name,
+            render_mode=render_mode,
+            #obs_type='ram'
+        )
     except gym.error.Error:
         from gymnasium.envs.registration import register
         register(
@@ -73,7 +83,11 @@ def make_env(
             max_episode_steps=4_000,
             reward_threshold=3000.0,
         )
-        env = gym.make(env_name, render_mode=render_mode)
+        env = gym.make(
+            env_name,
+            render_mode=render_mode,
+            #obs_type='ram'
+        )
     if reduce_action_space:
         env = ReducedActionSpaceWrapper(env)
 
@@ -164,10 +178,11 @@ def main(args=None):
     if not args.render:
         print('Saving videos!!!!!!!!!!')
 
+        video_recording_length = 1000
         vec_env = VecVideoRecorder(
             vec_env, f"videos/{run.id}",
-            record_video_trigger=lambda x: x % 200 == 0,
-            video_length=1000,
+            record_video_trigger=lambda x: x % video_recording_length == 0,
+            video_length=(video_recording_length - 1),
         )
 
     if args.agent == 'ppo':
@@ -225,7 +240,8 @@ def main(args=None):
             {
                 "gym_video": wandb.Video(path, caption='Video', fps=30, format="mp4"),
                 "gym_video_start_step": start_step,
-                "gym_video_end_step": end_step
+                "gym_video_end_step": end_step,
+                "env_step": start_step
             }
         )
 

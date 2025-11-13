@@ -2,6 +2,61 @@ from abc import ABC
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import patches
+import gymnasium as gym
+
+
+class MontezumasRAMInformationExtractor:
+    def __init__(self, wrapper: gym.Wrapper):
+        self._wrapper: gym.Wrapper = wrapper
+
+        # copied from https://github.com/mila-iqia/atari-representation-learning/blob/master/atariari/benchmark/ram_annotations.py
+        self._variable_to_ram_index_dict = dict(
+            room_number=3,
+            player_x=42,
+            player_y=43,
+            player_direction=52,
+            # 72:  facing left, 40:  facing left, climbing down ladder/rope 24:  facing left, climbing up ladder/rope 128: facing right 32:  facing right, climbing down ladder/rope, 16: facing right climbing up ladder/rope
+            enemy_skull_x=47,
+            enemy_skull_y=46,
+            key_monster_x=44,
+            key_monster_y=45,
+            level=57,
+            num_lives=58,
+            items_in_inventory_count=61,
+            room_state=62,
+            score_0=19,
+            score_1=20,
+            score_2=21
+        )
+
+    def get_ram(self):
+        return self._wrapper.env.unwrapped.ale.getRAM()
+
+    def get_player_position(self):
+        """Returns x and y position of the player
+
+        Returns tuple:
+            0: x
+            1: y
+        """
+        ram = self._wrapper.env.unwrapped.ale.getRAM()
+        return int(ram[
+                       self._variable_to_ram_index_dict["player_x"]
+                   ]), int(ram[
+                               self._variable_to_ram_index_dict["player_y"]
+                           ]) - 107
+
+    def get_player_number_of_lives(self):
+        ram = self._wrapper.env.unwrapped.ale.getRAM()
+        return ram[
+            self._variable_to_ram_index_dict["num_lives"]
+        ]
+
+    def get_room_id(self):
+        ram = self._wrapper.env.unwrapped.ale.getRAM()
+        return ram[
+            self._variable_to_ram_index_dict["room_state"]
+        ]
 
 
 class MontezumasInformationExtractor(ABC):
@@ -46,7 +101,6 @@ class MontezumasInformationExtractor(ABC):
     def get_number_of_lives(obs: np.array):
         # Display it using matplotlib
 
-
         rect_size = 5
 
         base_x = (MontezumasInformationExtractor.GAME_IMAGE_FRAME_WIDTH // 2) - (rect_size / 2)
@@ -59,8 +113,6 @@ class MontezumasInformationExtractor(ABC):
             (base_x + 3, y),
             (base_x + 11, y),
         ]
-
-
 
         # fig, ax = plt.subplots()
         # ax.imshow(obs)
@@ -124,7 +176,7 @@ class MontezumasInformationExtractor(ABC):
 
     @staticmethod
     def get_approximated_character_coords(obs):
-        v, u = MontezumasInformationExtractor.get_approximated_character_position(obs,)
+        v, u = MontezumasInformationExtractor.get_approximated_character_position(obs, )
         # obs.shape =  (210, 160, 3)
 
         x = u
