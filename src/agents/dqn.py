@@ -2,16 +2,18 @@ from stable_baselines3 import DQN
 from core.wandb_callback import WandbCallback
 
 class DQNTrainer:
-    def __init__(self, env, config, run=None):
+    def __init__(self, env, config, run=None, device='cpu'):
         self.env = env
         self.config = config
         self.run = run
+        self.device = device
         self.model = None
 
     def train(self):
         self.model = DQN(
             'MlpPolicy',
             self.env,
+            device=self.device,
             learning_rate=self.config.get('learning_rate', 1e-3),
             buffer_size=self.config.get('buffer_size', 50_000),
             learning_starts=self.config.get('learning_starts', 1_000),

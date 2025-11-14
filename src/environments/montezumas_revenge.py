@@ -127,7 +127,7 @@ def extract_steps(filename):
 
 def main(args=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--agent', choices=['ppo', 'dqn', 'q_learning'], default='ppo')
+    parser.add_argument('--agent', choices=['ppo', 'dqn', 'q-learning'], default='ppo')
     parser.add_argument('--timesteps', type=int, default=30_000)
     parser.add_argument('--project', type=str, default='ShapingRL-Montezuma')
     parser.add_argument('--entity', type=str, default=None)

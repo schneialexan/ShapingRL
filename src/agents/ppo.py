@@ -2,16 +2,18 @@ from stable_baselines3 import PPO
 from core.wandb_callback import WandbCallback
 
 class PPOTrainer:
-    def __init__(self, env, config, run=None):
+    def __init__(self, env, config, run=None, device='cpu'):
         self.env = env
         self.config = config
         self.run = run
+        self.device = device
         self.model = None
 
     def train(self):
         self.model = PPO(
             'MlpPolicy',
             self.env,
+            device=self.device,
             learning_rate=self.config.get('learning_rate', 3e-4),
             n_steps=self.config.get('n_steps', 2048),
             batch_size=self.config.get('batch_size', 64),

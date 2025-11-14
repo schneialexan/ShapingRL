@@ -19,7 +19,7 @@ CONFIG = {
         "total_timesteps": 200_000,
         "verbose": 1,
     },
-    "q_learning": {
+    "q-learning": {
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon_start": 1.0,
