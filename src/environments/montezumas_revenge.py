@@ -71,7 +71,9 @@ def make_env(
         env = ReducedActionSpaceWrapper(env)
 
     if shaping == "naive":
-        env = NaiveDenseWrapper(env, guideline_coach=MontezumasKeyGuidelineCoachForcingOrder)
+        env = NaiveDenseWrapper(
+            env, guideline_coach=MontezumasKeyGuidelineCoachForcingOrder
+        )
     elif shaping == "potential":
         env = MontezumaPotentialBasedWrapper(env, gamma=0.99, debugging=debugging)
     elif shaping == "grid-based":
@@ -180,7 +182,9 @@ def main(args=None):
         )
     else:
         # Q-learning uses episodes, approximate conversion from timesteps (avg episode length ~200)
-        trainer = QLearningTrainer(env, config={"total_episodes": args.timesteps // 200}, run=run)
+        trainer = QLearningTrainer(
+            env, config={"total_episodes": args.timesteps // 200}, run=run
+        )
 
     # Train agent
     model_or_q = trainer.train()

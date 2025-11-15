@@ -98,10 +98,10 @@ pytest tests/test_mr.py
 pytest tests/test_benchmark.py
 
 # Format code
-ruff format src/
+ruff format .
 
 # Run linter
-ruff check src/
+ruff check .
 ```
 
 ## Architecture
