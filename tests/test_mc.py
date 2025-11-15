@@ -2,26 +2,20 @@
 """Test MountainCar environment with all agent and shaping combinations."""
 
 import os
-import sys
 
+import gymnasium as gym
 import pytest
+from gymnasium.wrappers import RecordEpisodeStatistics
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
-# Add src folder to sys.path
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(project_root, "src"))
-
-import gymnasium as gym  # noqa: E402
-from gymnasium.wrappers import RecordEpisodeStatistics  # noqa: E402
-from stable_baselines3.common.monitor import Monitor  # noqa: E402
-from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize  # noqa: E402
-
-from agents.dqn import DQNTrainer  # noqa: E402
-from agents.ppo import PPOTrainer  # noqa: E402
-from agents.q_learning import QLearningTrainer  # noqa: E402
-from core.config import CONFIG  # noqa: E402
-from core.seeds import reset_env_seed, set_seed  # noqa: E402
-from shaping.mountain_car.naive import NaiveDenseWrapper  # noqa: E402
-from shaping.mountain_car.potential import PotentialBasedWrapper  # noqa: E402
+from agents.dqn import DQNTrainer
+from agents.ppo import PPOTrainer
+from agents.q_learning import QLearningTrainer
+from core.config import CONFIG
+from core.seeds import reset_env_seed, set_seed
+from shaping.mountain_car.naive import NaiveDenseWrapper
+from shaping.mountain_car.potential import PotentialBasedWrapper
 
 
 def make_env(shaping="none", render_mode=None):

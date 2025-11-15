@@ -2,27 +2,22 @@
 """Test Montezuma's Revenge environment with all agent and shaping combinations."""
 
 import os
-import sys
 
-import ale_py  # noqa: F401, E402 - Required for ALE environment registration
-import gymnasium as gym  # noqa: E402
+import ale_py  # noqa: F401 - Required for ALE environment registration
+import gymnasium as gym
 import pytest
-from gymnasium.envs.registration import register  # noqa: E402
+from gymnasium.envs.registration import register
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
-# Add src folder to sys.path
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(project_root, "src"))
-from stable_baselines3.common.monitor import Monitor  # noqa: E402
-from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize  # noqa: E402
-
-from agents.dqn import DQNTrainer  # noqa: E402
-from agents.ppo import PPOTrainer  # noqa: E402
-from core.config import CONFIG  # noqa: E402
-from core.seeds import reset_env_seed, set_seed  # noqa: E402
-from shaping.montezuma.grid_based import GridBasedWrapper  # noqa: E402
-from shaping.montezuma.naive import NaiveDenseWrapper  # noqa: E402
-from shaping.montezuma.potential import MontezumaPotentialBasedWrapper  # noqa: E402
-from training.coach import MontezumasKeyGuidelineCoachForcingOrder  # noqa: E402
+from agents.dqn import DQNTrainer
+from agents.ppo import PPOTrainer
+from core.config import CONFIG
+from core.seeds import reset_env_seed, set_seed
+from shaping.montezuma.grid_based import GridBasedWrapper
+from shaping.montezuma.naive import NaiveDenseWrapper
+from shaping.montezuma.potential import MontezumaPotentialBasedWrapper
+from training.coach import MontezumasKeyGuidelineCoachForcingOrder
 
 
 def make_env(shaping="grid-based", render_mode=None):
@@ -30,7 +25,9 @@ def make_env(shaping="grid-based", render_mode=None):
     # Check if rendering is enabled via environment variable
     if render_mode is None:
         render_mode = (
-            "human" if os.environ.get("RENDER_TESTS", "").lower() in ("1", "true", "yes") else None
+            "human"
+            if os.environ.get("RENDER_TESTS", "").lower() in ("1", "true", "yes")
+            else None
         )
 
     env_name = "ALE/MontezumaRevenge-v5"
@@ -45,7 +42,9 @@ def make_env(shaping="grid-based", render_mode=None):
     env = gym.make(env_name, render_mode=render_mode)
 
     if shaping == "naive":
-        env = NaiveDenseWrapper(env, guideline_coach=MontezumasKeyGuidelineCoachForcingOrder)
+        env = NaiveDenseWrapper(
+            env, guideline_coach=MontezumasKeyGuidelineCoachForcingOrder
+        )
     elif shaping == "potential":
         env = MontezumaPotentialBasedWrapper(env, gamma=0.99, debugging=False)
     elif shaping == "grid-based":

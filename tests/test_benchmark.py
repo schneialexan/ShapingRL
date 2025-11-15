@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Benchmark script to compare GPU vs CPU performance for PPO and DQN agents."""
 
-import os
-import sys
 import time
 
 import ale_py  # noqa: F401 - Required for ALE environment registration
@@ -12,14 +10,10 @@ from gymnasium.wrappers import RecordEpisodeStatistics
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
-# Add src folder to sys.path
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(project_root, "src"))
-
-from agents.dqn import DQNTrainer  # noqa: E402
-from agents.ppo import PPOTrainer  # noqa: E402
-from core.config import CONFIG  # noqa: E402
-from core.seeds import reset_env_seed, set_seed  # noqa: E402
+from agents.dqn import DQNTrainer
+from agents.ppo import PPOTrainer
+from core.config import CONFIG
+from core.seeds import reset_env_seed, set_seed
 
 
 def make_mountain_car_env():
@@ -86,7 +80,9 @@ def run_test(agent_type, device, timesteps=50000, seed=42, env_type="mountain_ca
     vec_env = DummyVecEnv([lambda: env])
     if agent_type == "ppo":
         if env_type == "mountain_car":
-            vec_env = VecNormalize(vec_env, norm_obs=True, norm_reward=True, clip_obs=10.0)
+            vec_env = VecNormalize(
+                vec_env, norm_obs=True, norm_reward=True, clip_obs=10.0
+            )
         else:  # montezuma
             vec_env = VecNormalize(
                 vec_env, norm_obs=True, norm_reward=True, clip_obs=255, clip_reward=500
@@ -131,20 +127,36 @@ def main():
     print(" " * 25 + "MountainCar Benchmarks")
     print("=" * 70)
 
-    results["mc_ppo_cpu"] = run_test("ppo", "cpu", mountain_car_timesteps, seed, "mountain_car")
-    results["mc_ppo_gpu"] = run_test("ppo", "cuda", mountain_car_timesteps, seed, "mountain_car")
-    results["mc_dqn_cpu"] = run_test("dqn", "cpu", mountain_car_timesteps, seed, "mountain_car")
-    results["mc_dqn_gpu"] = run_test("dqn", "cuda", mountain_car_timesteps, seed, "mountain_car")
+    results["mc_ppo_cpu"] = run_test(
+        "ppo", "cpu", mountain_car_timesteps, seed, "mountain_car"
+    )
+    results["mc_ppo_gpu"] = run_test(
+        "ppo", "cuda", mountain_car_timesteps, seed, "mountain_car"
+    )
+    results["mc_dqn_cpu"] = run_test(
+        "dqn", "cpu", mountain_car_timesteps, seed, "mountain_car"
+    )
+    results["mc_dqn_gpu"] = run_test(
+        "dqn", "cuda", mountain_car_timesteps, seed, "mountain_car"
+    )
 
     # Montezuma Tests
     print("\n" + "=" * 70)
     print(" " * 25 + "Montezuma's Revenge Benchmarks")
     print("=" * 70)
 
-    results["mr_ppo_cpu"] = run_test("ppo", "cpu", montezuma_timesteps, seed, "montezuma")
-    results["mr_ppo_gpu"] = run_test("ppo", "cuda", montezuma_timesteps, seed, "montezuma")
-    results["mr_dqn_cpu"] = run_test("dqn", "cpu", montezuma_timesteps, seed, "montezuma")
-    results["mr_dqn_gpu"] = run_test("dqn", "cuda", montezuma_timesteps, seed, "montezuma")
+    results["mr_ppo_cpu"] = run_test(
+        "ppo", "cpu", montezuma_timesteps, seed, "montezuma"
+    )
+    results["mr_ppo_gpu"] = run_test(
+        "ppo", "cuda", montezuma_timesteps, seed, "montezuma"
+    )
+    results["mr_dqn_cpu"] = run_test(
+        "dqn", "cpu", montezuma_timesteps, seed, "montezuma"
+    )
+    results["mr_dqn_gpu"] = run_test(
+        "dqn", "cuda", montezuma_timesteps, seed, "montezuma"
+    )
 
     # Print summary
     print("\n" + "=" * 70)
