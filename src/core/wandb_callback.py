@@ -15,30 +15,40 @@ class WandbCallback(BaseCallback):
         self._step_counter = 0
 
     def _on_step(self) -> bool:
-        infos = self.locals.get('infos', [{}])
+        infos = self.locals.get("infos", [{}])
         for info in infos:
-            # Per-step shaping info
-            if 'env_reward' in info and 'shaping_reward' in info and 'total_reward' in info:
-                self.env_rewards.append(info['env_reward'])
-                self.shaping_rewards.append(info['shaping_reward'])
-                self.total_rewards.append(info['total_reward'])
+            # Per-step shaping info (tracked for episode-level aggregation)
+            if (
+                "env_reward" in info
+                and "shaping_reward" in info
+                and "total_reward" in info
+            ):
+                self.env_rewards.append(info["env_reward"])
+                self.shaping_rewards.append(info["shaping_reward"])
+                self.total_rewards.append(info["total_reward"])
                 metrics = {
                     "env_step": self._step_counter,
                     "env_reward": self.env_rewards[-1],
                     "shaping_reward": self.shaping_rewards[-1],
-                    "total_reward": self.total_rewards[-1]
+                    "total_reward": self.total_rewards[-1],
                 }
                 self._agent_logger.log_metrics(metrics)
 
-            # Episode ended --> log metrics
-            if 'episode' in info:
-                ep_info = info['episode']
-                avg_shaping_reward = (sum(self.shaping_rewards) / len(
-                    self.shaping_rewards)) if self.shaping_rewards else 0
-                avg_total_reward = (sum(self.total_rewards) / len(
-                    self.total_rewards)) if self.total_rewards else 0
+            # Episode ended --> log aggregated metrics
+            if "episode" in info:
+                ep_info = info["episode"]
+                avg_shaping_reward = (
+                    (sum(self.shaping_rewards) / len(self.shaping_rewards))
+                    if self.shaping_rewards
+                    else 0
+                )
+                avg_total_reward = (
+                    (sum(self.total_rewards) / len(self.total_rewards))
+                    if self.total_rewards
+                    else 0
+                )
                 # SB3 metrics
-                sb3_logs = getattr(self.model.logger, 'name_to_value', {})
+                sb3_logs = getattr(self.model.logger, "name_to_value", {})
                 metrics = {
                     "episode_reward": ep_info["r"],
                     "episode_length": ep_info["l"],
@@ -52,12 +62,12 @@ class WandbCallback(BaseCallback):
                     "loss": sb3_logs.get("train/loss"),
                     "explained_variance": sb3_logs.get("train/explained_variance"),
                     "learning_rate": sb3_logs.get("train/learning_rate"),
-                    "total_timesteps": sb3_logs.get("time/total_timesteps")
+                    "total_timesteps": sb3_logs.get("time/total_timesteps"),
                 }
 
                 self._agent_logger.log_episode(self.nr_episode, **metrics)
                 self.nr_episode += 1
-                # Reset per-episode buffers
+                # Reset per-episode buffers for next episode
                 self.env_rewards.clear()
                 self.shaping_rewards.clear()
                 self.total_rewards.clear()
