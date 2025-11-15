@@ -29,6 +29,6 @@ CONFIG = {
         "total_episodes": 1000,
     },
     "wandb": {
-        "project": "mountaincar-reward-shaping",
+        "project": "Mountain Car",  # Default project name (can be overridden by environment scripts)
     },
 }
