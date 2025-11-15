@@ -1,8 +1,6 @@
-# ShapingRL
+# 📈 ShapingRL
 
 Reward Shaping and Potential-Based Methods in Reinforcement Learning
-
-This repository contains the implementation and experiments for our university project comparing naive dense reward shaping against potential-based shaping methods in Reinforcement Learning.
 
 ## 📚 Project Overview
 
@@ -14,20 +12,12 @@ This repository contains the implementation and experiments for our university p
 Compare naïve dense shaping against potential-based shaping across sparse-reward tasks to identify when shaping accelerates learning versus when it biases policies.
 
 ### Tasks
-https://docs.google.com/document/d/1xXon4ktpAdHPizVb3PvXX6tmJmtjUxi2Wyn-aixLfps/edit?tab=t.0
+
 - Implement standard RL algorithms (Q-learning, PPO, DQN) on sparse-reward tasks (MountainCar, Atari Montezuma's Revenge)
 - Compare naive reward shaping (dense rewards, penalties) with potential-based shaping
 - Study the impact on convergence, exploration, and policy optimality
 - Analyze sensitivity to mis-specified shaping potentials
 - Provide guidelines: When is shaping helpful, harmful, or unnecessary?
-
-### Get Environment
-Conda:
-```cmd
-conda create -n ShapingRL python=3.13 -y
-conda activate ShapingRL
-pip install -r requirements.txt
-```
 
 ### References
 
@@ -39,7 +29,7 @@ pip install -r requirements.txt
 
 ## 🏗️ Repository Structure
 
-```
+```text
 ShapingRL/
 ├── src/                          # Source code
 │   ├── agents/                   # RL algorithm implementations
@@ -47,134 +37,37 @@ ShapingRL/
 │   │   ├── dqn.py               # Deep Q-Network
 │   │   └── ppo.py               # Proximal Policy Optimization
 │   ├── core/                     # Core utilities
-│   │   └── replay_buffer.py     # Experience replay buffer
+│   │   ├── config.py            # Configuration settings
+│   │   ├── logger.py            # Logging utilities
+│   │   ├── seeds.py             # Seed management
+│   │   └── wandb_callback.py   # Weights & Biases integration
 │   ├── environments/             # Environment wrappers
-│   │   └── mountain_car.py      # MountainCar environment wrapper
-│   │   └── montezumas_revenge.py   # MountainCar environment wrapper
-│   └── shaping/                  # Reward shaping methods
-│       ├── naive_dense.py       # Naive dense reward shaping
-│       └── potential_based.py   # Potential-based reward shaping
+│   │   ├── mountain_car.py      # MountainCar environment wrapper
+│   │   └── montezumas_revenge.py # Montezuma's Revenge environment wrapper
+│   ├── shaping/                  # Reward shaping methods
+│   │   ├── mountain_car/        # MountainCar shaping methods
+│   │   │   ├── naive.py         # Naive dense reward shaping
+│   │   │   └── potential.py     # Potential-based reward shaping
+│   │   └── montezuma/           # Montezuma's Revenge shaping methods
+│   │       ├── naive.py         # Naive dense reward shaping
+│   │       ├── potential.py     # Potential-based reward shaping
+│   │       └── grid_based.py    # Grid-based shaping
+│   ├── training/                 # Training utilities
+│   │   ├── coach.py             # Guideline coach implementation
+│   │   └── guide.py             # Guideline definitions
+│   ├── info/                     # Information extraction
+│   ├── information_extraction/   # Information extraction utilities
+│   ├── log/                      # Logging utilities
+│   └── util.py                   # General utilities
 ├── tests/                        # Unit tests
+│   ├── test_benchmark.py        # Benchmark tests
+│   ├── test_dependencies.py     # Dependency tests
+│   ├── test_mc.py               # MountainCar tests
+│   └── test_mr.py               # Montezuma's Revenge tests
 ├── notebooks/                    # Jupyter notebooks for experiments
 │   └── exploratory_analysis.ipynb
 ├── flake.nix                    # Nix flake for reproducible dev environment
-├── pyproject.toml               # Python project metadata and dependencies
-├── requirements.txt             # Pip requirements file
-├── environment.yml              # Conda environment file
-└── CONTRIBUTING.md              # Contributing guidelines
-```
-
----
-
-## 🚀 Quick Start
-
-### Option 1: Using Nix (Recommended)
-
-Nix provides a fully reproducible development environment that works identically across all systems.
-
-#### Prerequisites
-
-**Install Nix:**
-
-Visit [nixos.org/download](https://nixos.org/download/) for the latest installation instructions, or follow the quick guide below:
-
-**Linux & macOS:**
-```bash
-sh <(curl -L https://nixos.org/nix/install) --daemon
-```
-
-**Windows (WSL2):**
-1. Install WSL2 if not already installed:
-   ```powershell
-   wsl --install
-   ```
-2. Open Ubuntu from WSL and install Nix:
-   ```bash
-   sh <(curl -L https://nixos.org/nix/install) --daemon
-   ```
-
-**Docker:**
-```bash
-docker run -it nixos/nix
-```
-
-**Enable flakes:**
-```bash
-mkdir -p ~/.config/nix
-echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
-```
-
-#### Get Started
-
-1. **Clone and enter the environment:**
-   ```bash
-   git clone https://github.com/btwbrauer/ShapingRL.git
-   cd ShapingRL
-   nix develop
-   ```
-
-2. **Start working:**
-   ```bash
-   # Launch Jupyter
-   jupyter notebook
-   
-   # Or run scripts directly
-   python src/agents/q_learning.py
-   
-   # Run tests
-   pytest
-   ```
-
-#### GPU Support
-
-The flake **automatically detects** your GPU and installs the appropriate PyTorch:
-
-- **AMD GPU (Linux):** Automatically uses `torchWithRocm`
-- **NVIDIA GPU (Linux):** Use `nix develop .#cuda` for CUDA support
-- **macOS:** Automatically uses `torch` with Metal acceleration
-- **No GPU:** Falls back to CPU-only PyTorch
-
-The default `nix develop` command detects your hardware at runtime!
-
-### Option 2: Using Pip/Conda
-
-For users who prefer traditional Python tools:
-
-#### Using pip
-
-> ⚠️ Disclaimer for **macOS apple silicon** installations
-> 
-> You may encounter a `hint: This error likely indicates that you need to install a library that provides "SDL.h" ...` error while installing the package pygame@2.6.1 on macOS. Several Stackoverflow posts and the official documentation (https://www.pygame.org/wiki/MacCompile) suggest installing some arbitrary sdl packages with brew to fix the compilation. Do not even bother as some of these packages don't even exist anymore and newer versions don't work. **Just use conda.**
-
-1. **Setup:**
-   ```bash
-   git clone https://github.com/btwbrauer/ShapingRL.git
-   cd ShapingRL
-   python3 -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   # CPU version
-   pip install -e .
-   
-   # For NVIDIA GPU
-   pip install torch --index-url https://download.pytorch.org/whl/cu121
-   pip install -e .
-   
-   # For AMD GPU
-   pip install torch --index-url https://download.pytorch.org/whl/rocm6.0
-   pip install -e .
-   ```
-
-#### Using Conda
-
-```bash
-git clone https://github.com/btwbrauer/ShapingRL.git
-cd ShapingRL
-conda env create -f environment.yml
-conda activate rl-shaping
+└── requirements.txt             # Pip requirements file
 ```
 
 ---
@@ -184,26 +77,31 @@ conda activate rl-shaping
 ### Running Experiments
 
 ```bash
-# Launch Jupyter
-jupyter notebook
+# MountainCar environment
+python src/environments/mountain_car.py --agent=ppo --shaping=potential --timesteps=10000
+python src/environments/mountain_car.py --agent=dqn --shaping=naive --timesteps=5000
+python src/environments/mountain_car.py --agent=q-learning --shaping=none --timesteps=2000
 
-# Run individual agents
-python src/agents/q_learning.py
-python src/agents/dqn.py
-python src/agents/ppo.py
+# Montezuma's Revenge environment
+python src/environments/montezumas_revenge.py --agent=ppo --shaping=potential --timesteps=100000
 ```
 
 ### Development
 
 ```bash
-# Format code
-black src/
-
-# Run linter
-flake8 src/
-
 # Run tests
 pytest
+
+# Run specific test files
+pytest tests/test_mc.py
+pytest tests/test_mr.py
+pytest tests/test_benchmark.py
+
+# Format code
+ruff format src/
+
+# Run linter
+ruff check src/
 ```
 
 ## Architecture
@@ -260,46 +158,29 @@ flowchart TD
 
 ## 📦 Dependencies
 
-Core dependencies include:
+### Core Dependencies
+
 - **torch** - Deep learning framework (DQN, PPO)
 - **gymnasium** - RL environments (MountainCar, Atari)
 - **ale-py** - Atari Learning Environment
 - **pygame** - Environment rendering
-- **numpy, pandas, scipy** - Scientific computing
-- **matplotlib, seaborn** - Visualization
+- **numpy** - Scientific computing
+- **matplotlib** - Visualization
+- **opencv-python** - Image processing (for Montezuma's Revenge test wrapper)
 - **jupyter** - Interactive notebooks
-- **pytest, black, flake8** - Development tools
+- **wandb** - Experiment tracking and logging
+- **stable-baselines3** - RL algorithm implementations
 
-See `requirements.txt` or `pyproject.toml` for complete dependency list
+### Development Tools
 
----
+- **pytest** - Testing framework
+- **ruff** - Code formatting and linting
 
-## 🤝 Contributing
+### Additional Dependencies
 
-This is a university group project. Team members should:
+- **imageio**, **imageio-ffmpeg**, **moviepy**, **pillow** - Video recording for wandb
 
-1. Create feature branches for new work
-2. Format code with Black before committing
-3. Write tests for new functionality
-4. Update documentation as needed
-
-See `CONTRIBUTING.md` for detailed guidelines.
-
----
-
-## 🔧 Troubleshooting
-
-**Module not found errors:**
-- Nix: Ensure you're inside `nix develop`
-- Pip: Activate virtual environment and run `pip install -e .`
-
-**Atari ROMs not found:**
-- Run: `ale-import-roms --import-from-pkg atari_py.atari_roms`
-
-**GPU not detected:**
-- Nix: Change `torchWithRocm` to `torchWithCuda` in `flake.nix` (line 24) for NVIDIA
-- Pip/Conda: Install PyTorch with correct GPU support (see setup instructions)
-- WSL2: Ensure GPU drivers are installed on Windows host
+See `requirements.txt` or `flake.nix` for complete dependency list with versions.
 
 ---
 
@@ -307,10 +188,6 @@ See `CONTRIBUTING.md` for detailed guidelines.
 
 - Björn Brauer
 - Leandro Gregorini
-- Alexandru Schneider
 - Flavio Kluser
+- Alexandru Schneider
 - Roman Zberg
-
-## 📄 License
-
-MIT License
