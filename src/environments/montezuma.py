@@ -9,51 +9,39 @@ from gymnasium.envs.registration import register
 
 from info.montezumas_info import MontezumaActions
 
+# RAM indices used across all RAM-based wrappers
+RAM_INDICES = {
+    "room_number": 3,
+    "player_x": 42,
+    "player_y": 43,
+    "player_direction": 52,
+    "enemy_skull_x": 47,
+    "enemy_skull_y": 46,
+    "key_monster_x": 44,
+    "key_monster_y": 45,
+    "level": 57,
+    "num_lives": 58,
+    "items_in_inventory_count": 61,
+    "room_state": 62,
+}
+
 
 class ActionSpaceWrapper(gym.ActionWrapper):
-    """Reduce action space with optional NOOP."""
+    """Reduce action space to 7 actions (always includes NOOP)."""
 
-    def __init__(self, env, include_noop=True):
+    def __init__(self, env):
         super().__init__(env)
-        if include_noop:
-            # 7 actions: NOOP, UP, RIGHT, LEFT, DOWN, RIGHTFIRE, LEFTFIRE
-            self.action_subset = [
-                MontezumaActions.NOOP.value,
-                MontezumaActions.UP.value,
-                MontezumaActions.RIGHT.value,
-                MontezumaActions.LEFT.value,
-                MontezumaActions.DOWN.value,
-                MontezumaActions.RIGHTFIRE.value,
-                MontezumaActions.LEFTFIRE.value,
-            ]
-            self._action_mapping = {
-                0: MontezumaActions.NOOP.value,
-                1: MontezumaActions.UP.value,
-                2: MontezumaActions.RIGHT.value,
-                3: MontezumaActions.LEFT.value,
-                4: MontezumaActions.DOWN.value,
-                5: MontezumaActions.RIGHTFIRE.value,
-                6: MontezumaActions.LEFTFIRE.value,
-            }
-        else:
-            # 6 actions: UP, RIGHT, LEFT, DOWN, RIGHTFIRE, LEFTFIRE (no NOOP)
-            self.action_subset = [
-                MontezumaActions.UP.value,
-                MontezumaActions.RIGHT.value,
-                MontezumaActions.LEFT.value,
-                MontezumaActions.DOWN.value,
-                MontezumaActions.RIGHTFIRE.value,
-                MontezumaActions.LEFTFIRE.value,
-            ]
-            self._action_mapping = {
-                0: MontezumaActions.UP.value,
-                1: MontezumaActions.RIGHT.value,
-                2: MontezumaActions.LEFT.value,
-                3: MontezumaActions.DOWN.value,
-                4: MontezumaActions.RIGHTFIRE.value,
-                5: MontezumaActions.LEFTFIRE.value,
-            }
-        self.action_space = spaces.Discrete(len(self.action_subset))
+        # 7 actions: NOOP, UP, RIGHT, LEFT, DOWN, RIGHTFIRE, LEFTFIRE
+        self._action_mapping = {
+            0: MontezumaActions.NOOP.value,
+            1: MontezumaActions.UP.value,
+            2: MontezumaActions.RIGHT.value,
+            3: MontezumaActions.LEFT.value,
+            4: MontezumaActions.DOWN.value,
+            5: MontezumaActions.RIGHTFIRE.value,
+            6: MontezumaActions.LEFTFIRE.value,
+        }
+        self.action_space = spaces.Discrete(7)
 
     def action(self, act):
         return self._action_mapping[act]
@@ -90,21 +78,7 @@ class RAMObservationWrapper(gym.Wrapper):
 
     def __init__(self, env):
         super().__init__(env)
-        self._ram_indices = {
-            "room_number": 3,
-            "player_x": 42,
-            "player_y": 43,
-            "player_direction": 52,
-            "enemy_skull_x": 47,
-            "enemy_skull_y": 46,
-            "key_monster_x": 44,
-            "key_monster_y": 45,
-            "level": 57,
-            "num_lives": 58,
-            "items_in_inventory_count": 61,
-            "room_state": 62,
-        }
-        num_features = len(self._ram_indices)  # 12 features
+        num_features = len(RAM_INDICES)  # 12 features
 
         self.observation_space = spaces.Dict(
             {
@@ -119,7 +93,7 @@ class RAMObservationWrapper(gym.Wrapper):
 
     def _extract_ram_features(self):
         ram = self.env.unwrapped.ale.getRAM()
-        features = [int(ram[idx]) for idx in self._ram_indices.values()]
+        features = [int(ram[idx]) for idx in RAM_INDICES.values()]
         return np.array(features, dtype=np.uint8)
 
     def step(self, action):
@@ -139,78 +113,19 @@ class RAMObservationWrapper(gym.Wrapper):
         return {"image": obs, "ram_features": ram_features}, info
 
 
-class RAMFlattenedObservationWrapper(gym.Wrapper):
-    """Flatten RAM features and concatenate with image observations."""
-
-    def __init__(self, env):
-        super().__init__(env)
-        self._ram_indices = {
-            "room_number": 3,
-            "player_x": 42,
-            "player_y": 43,
-            "player_direction": 52,
-            "enemy_skull_x": 47,
-            "enemy_skull_y": 46,
-            "key_monster_x": 44,
-            "key_monster_y": 45,
-            "level": 57,
-            "num_lives": 58,
-            "items_in_inventory_count": 61,
-            "room_state": 62,
-        }
-        num_ram_features = len(self._ram_indices)  # 12 features
-        obs_size = 210 * 160 * 3 + num_ram_features
-        self.observation_space = spaces.Box(
-            low=0, high=255, shape=(obs_size,), dtype=np.uint8
-        )
-
-    def _extract_ram_features(self):
-        ram = self.env.unwrapped.ale.getRAM()
-        features = [int(ram[idx]) for idx in self._ram_indices.values()]
-        return np.array(features, dtype=np.uint8)
-
-    def step(self, action):
-        obs, reward, terminated, truncated, info = self.env.step(action)
-        ram_features = self._extract_ram_features()
-        image_flat = obs.flatten()
-        obs_flat = np.concatenate([image_flat, ram_features])
-        return obs_flat, reward, terminated, truncated, info
-
-    def reset(self, **kwargs):
-        obs, info = self.env.reset(**kwargs)
-        ram_features = self._extract_ram_features()
-        image_flat = obs.flatten()
-        obs_flat = np.concatenate([image_flat, ram_features])
-        return obs_flat, info
-
-
 class RAMOnlyObservationWrapper(gym.Wrapper):
     """Return only RAM features, no image data."""
 
     def __init__(self, env):
         super().__init__(env)
-        self._ram_indices = {
-            "room_number": 3,
-            "player_x": 42,
-            "player_y": 43,
-            "player_direction": 52,
-            "enemy_skull_x": 47,
-            "enemy_skull_y": 46,
-            "key_monster_x": 44,
-            "key_monster_y": 45,
-            "level": 57,
-            "num_lives": 58,
-            "items_in_inventory_count": 61,
-            "room_state": 62,
-        }
-        num_ram_features = len(self._ram_indices)  # 12 features
+        num_ram_features = len(RAM_INDICES)  # 12 features
         self.observation_space = spaces.Box(
             low=0, high=255, shape=(num_ram_features,), dtype=np.uint8
         )
 
     def _extract_ram_features(self):
         ram = self.env.unwrapped.ale.getRAM()
-        features = [int(ram[idx]) for idx in self._ram_indices.values()]
+        features = [int(ram[idx]) for idx in RAM_INDICES.values()]
         return np.array(features, dtype=np.uint8)
 
     def step(self, action):
@@ -229,21 +144,7 @@ class GreyRAMObservationWrapper(gym.Wrapper):
 
     def __init__(self, env):
         super().__init__(env)
-        self._ram_indices = {
-            "room_number": 3,
-            "player_x": 42,
-            "player_y": 43,
-            "player_direction": 52,
-            "enemy_skull_x": 47,
-            "enemy_skull_y": 46,
-            "key_monster_x": 44,
-            "key_monster_y": 45,
-            "level": 57,
-            "num_lives": 58,
-            "items_in_inventory_count": 61,
-            "room_state": 62,
-        }
-        num_ram_features = len(self._ram_indices)  # 12 features
+        num_ram_features = len(RAM_INDICES)  # 12 features
         # Grayscale: (210, 160, 1) -> 210*160 = 33600
         obs_size = 210 * 160 + num_ram_features
         self.observation_space = spaces.Box(
@@ -252,7 +153,7 @@ class GreyRAMObservationWrapper(gym.Wrapper):
 
     def _extract_ram_features(self):
         ram = self.env.unwrapped.ale.getRAM()
-        features = [int(ram[idx]) for idx in self._ram_indices.values()]
+        features = [int(ram[idx]) for idx in RAM_INDICES.values()]
         return np.array(features, dtype=np.uint8)
 
     def step(self, action):
@@ -273,28 +174,24 @@ class GreyRAMObservationWrapper(gym.Wrapper):
 
 def make_montezuma(
     render_mode="rgb_array",
-    observation_type="default",  # default, grey, ram, ram-only, grey-ram
-    include_noop=True,  # True = 7 actions, False = 6 actions
-    enable_distance_reward=False,
-    distance_reward_scale=0.1,
+    state_space="default",  # default, grey, ram, ram-only, grey-ram
+    shaping=None,  # None, "manhattan", or other shaping methods
 ):
     """
     Create unified Montezuma's Revenge environment with configurable options.
 
     Args:
         render_mode: Rendering mode ("rgb_array", "human", or None)
-        observation_type: Type of observations
+        state_space: State space configuration
             - "default": RGB image (210, 160, 3)
             - "grey": Grayscale image (210, 160, 1)
             - "ram": Dictionary with RGB image + RAM features
             - "ram-only": Only RAM features (12,)
             - "grey-ram": Flattened grayscale + RAM features
-        include_noop: If True, include NOOP action (7 actions), else 6 actions
-        enable_distance_reward: If True, add reward shaping for moving right
-        distance_reward_scale: Scale factor for distance reward (default: 0.1)
+        shaping: Reward shaping method (None, "manhattan", etc.)
 
     Returns:
-        Configured Montezuma's Revenge environment
+        Configured Montezuma's Revenge environment (always 7 actions with NOOP)
     """
     env_name = "ALE/MontezumaRevenge-v5"
 
@@ -310,35 +207,34 @@ def make_montezuma(
     # Create base environment
     env = gym.make(env_name, render_mode=render_mode)
 
-    # 1. Reduce action space (always first)
-    env = ActionSpaceWrapper(env, include_noop=include_noop)
+    # 1. Reduce action space to 7 actions (always includes NOOP)
+    env = ActionSpaceWrapper(env)
 
-    # 2. Apply observation wrappers based on type
-    if observation_type == "default":
+    # 2. Apply observation wrappers based on state space
+    if state_space == "default":
         # RGB image only, no additional wrapper needed
         pass
-    elif observation_type == "grey":
+    elif state_space == "grey":
         env = GrayscaleObservationWrapper(env)
-    elif observation_type == "ram":
+    elif state_space == "ram":
         env = RAMObservationWrapper(env)
-    elif observation_type == "ram-only":
+    elif state_space == "ram-only":
         env = RAMOnlyObservationWrapper(env)
-    elif observation_type == "grey-ram":
+    elif state_space == "grey-ram":
         env = GrayscaleObservationWrapper(env)
         env = GreyRAMObservationWrapper(env)
     else:
         raise ValueError(
-            f"Unknown observation_type: {observation_type}. "
+            f"Unknown state_space: {state_space}. "
             f"Must be one of: default, grey, ram, ram-only, grey-ram"
         )
 
-    # 3. Add distance-based reward shaping (optional)
-    if enable_distance_reward:
+    # 3. Add reward shaping (optional)
+    if shaping == "manhattan":
         from shaping.montezuma.distance_reward import DistanceRewardWrapper
 
-        env = DistanceRewardWrapper(
-            env, distance_reward_scale=distance_reward_scale, debugging=False
-        )
+        env = DistanceRewardWrapper(env, distance_reward_scale=0.1, debugging=False)
+    # Add more shaping methods here as needed
 
     return env
 
@@ -347,9 +243,9 @@ if __name__ == "__main__":
     # Test all observation types
     print("Testing all observation types...\n")
 
-    for obs_type in ["default", "grey", "ram", "ram-only", "grey-ram"]:
-        print(f"Testing {obs_type}...")
-        env = make_montezuma(observation_type=obs_type, include_noop=False)
+    for state_space in ["default", "grey", "ram", "ram-only", "grey-ram"]:
+        print(f"Testing {state_space}...")
+        env = make_montezuma(state_space=state_space)
         print(f"  Action space: {env.action_space}")
         print(f"  Observation space: {env.observation_space}")
         obs, info = env.reset()

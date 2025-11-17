@@ -12,16 +12,25 @@ if str(src_path) not in sys.path:
 import ale_py  # noqa: F401
 import pytest
 import torch
-from training.montezuma import train_ppo_montezuma
+from environments.montezuma_grey import train_ppo_montezuma_grey
+from environments.montezuma_grey_ram import train_ppo_montezuma_grey_ram
+from environments.montezuma_ram import train_ppo_montezuma_ram
+from environments.montezuma_rgb import train_ppo_montezuma_rgb
+from environments.montezuma_rgb_ram import train_ppo_montezuma_rgb_ram
 
 
-def test_all_observation_types():
-    """Test all observation types with minimal steps."""
+def test_all_environments():
+    """Test all environment configurations with minimal steps."""
     if not torch.cuda.is_available():
         pytest.skip("CUDA not available, skipping tests")
 
-    observation_types = ["default", "grey", "ram", "ram-only", "grey-ram"]
-    include_noop_options = [True, False]
+    environments = [
+        ("RGB", train_ppo_montezuma_rgb),
+        ("RAM", train_ppo_montezuma_ram),
+        ("RGB-RAM", train_ppo_montezuma_rgb_ram),
+        ("Grey", train_ppo_montezuma_grey),
+        ("Grey-RAM", train_ppo_montezuma_grey_ram),
+    ]
 
     print("\n" + "=" * 70)
     print("Testing all Montezuma environment configurations")
@@ -30,35 +39,32 @@ def test_all_observation_types():
     passed = 0
     failed = 0
 
-    for obs_type in observation_types:
-        for include_noop in include_noop_options:
-            print(f"\n{'=' * 70}")
-            print(f"Testing: observation_type={obs_type}, include_noop={include_noop}")
-            print(f"{'=' * 70}")
+    for name, train_func in environments:
+        print(f"\n{'=' * 70}")
+        print(f"Testing: {name}")
+        print(f"{'=' * 70}")
 
-            try:
-                model, vec_env = train_ppo_montezuma(
-                    device="cuda",
-                    timesteps=500,  # Very small for quick test
-                    seed=42,
-                    run=None,  # No wandb
-                    observation_type=obs_type,
-                    include_noop=include_noop,
-                    checkpoint_path=None,  # No checkpointing for quick test
-                    checkpoint_interval=100_000,
-                    enable_distance_reward=False,
-                    distance_reward_scale=0.1,
-                )
-                assert model is not None, "Model should be returned"
-                assert vec_env is not None, "VecEnv should be returned"
-                print(f"✓ PASSED: {obs_type} with {'NOOP' if include_noop else 'no NOOP'}")
-                passed += 1
-            except Exception as e:
-                print(f"✗ FAILED: {obs_type} with {'NOOP' if include_noop else 'no NOOP'}")
-                print(f"  Error: {e}")
-                import traceback
-                traceback.print_exc()
-                failed += 1
+        try:
+            model, vec_env = train_func(
+                device="cuda",
+                timesteps=500,  # Very small for quick test
+                seed=42,
+                run=None,  # No wandb
+                checkpoint_path=None,  # No checkpointing for quick test
+                checkpoint_interval=100_000,
+                shaping=None,
+            )
+            assert model is not None, "Model should be returned"
+            assert vec_env is not None, "VecEnv should be returned"
+            print(f"✓ PASSED: {name}")
+            passed += 1
+        except Exception as e:
+            print(f"✗ FAILED: {name}")
+            print(f"  Error: {e}")
+            import traceback
+
+            traceback.print_exc()
+            failed += 1
 
     print("\n" + "=" * 70)
     print(f"Test Summary: {passed} passed, {failed} failed")
@@ -69,5 +75,4 @@ def test_all_observation_types():
 
 
 if __name__ == "__main__":
-    test_all_observation_types()
-
+    test_all_environments()

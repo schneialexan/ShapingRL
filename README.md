@@ -33,39 +33,19 @@ Compare naïve dense shaping against potential-based shaping across sparse-rewar
 ShapingRL/
 ├── src/                          # Source code
 │   ├── agents/                   # RL algorithm implementations
-│   │   ├── q_learning.py        # Tabular Q-Learning
-│   │   ├── dqn.py               # Deep Q-Network
-│   │   └── ppo.py               # Proximal Policy Optimization
-│   ├── core/                     # Core utilities
-│   │   ├── config.py            # Configuration settings
-│   │   ├── logger.py            # Logging utilities
-│   │   ├── seeds.py             # Seed management
-│   │   └── wandb_callback.py   # Weights & Biases integration
+│   ├── core/                     # Core utilities (config, seeds, wandb)
 │   ├── environments/             # Environment wrappers
-│   │   ├── mountain_car.py      # MountainCar environment wrapper
-│   │   └── montezumas_revenge.py # Montezuma's Revenge environment wrapper
+│   │   ├── mountain_car.py      # MountainCar environment
+│   │   ├── montezuma.py         # Montezuma base environment (make_montezuma)
+│   │   ├── montezuma_rgb.py     # RGB state space training
+│   │   ├── montezuma_ram.py     # RAM-only state space training
+│   │   ├── montezuma_rgb_ram.py # RGB+RAM dictionary training
+│   │   ├── montezuma_grey.py    # Grayscale training
+│   │   └── montezuma_grey_ram.py # Grey+RAM training
 │   ├── shaping/                  # Reward shaping methods
-│   │   ├── mountain_car/        # MountainCar shaping methods
-│   │   │   ├── naive.py         # Naive dense reward shaping
-│   │   │   └── potential.py     # Potential-based reward shaping
-│   │   └── montezuma/           # Montezuma's Revenge shaping methods
-│   │       ├── naive.py         # Naive dense reward shaping
-│   │       ├── potential.py     # Potential-based reward shaping
-│   │       └── grid_based.py    # Grid-based shaping
-│   ├── training/                 # Training utilities
-│   │   ├── coach.py             # Guideline coach implementation
-│   │   └── guide.py             # Guideline definitions
-│   ├── info/                     # Information extraction
-│   ├── information_extraction/   # Information extraction utilities
-│   ├── log/                      # Logging utilities
-│   └── util.py                   # General utilities
+│   └── training/                 # Training utilities
 ├── tests/                        # Unit tests
-│   ├── test_benchmark.py        # Benchmark tests
-│   ├── test_dependencies.py     # Dependency tests
-│   ├── test_mc.py               # MountainCar tests
-│   └── test_mr.py               # Montezuma's Revenge tests
-├── notebooks/                    # Jupyter notebooks for experiments
-│   └── exploratory_analysis.ipynb
+├── notebooks/                    # Jupyter notebooks
 ├── flake.nix                    # Nix flake for reproducible dev environment
 └── requirements.txt             # Pip requirements file
 ```
@@ -74,84 +54,147 @@ ShapingRL/
 
 ## 🎯 Usage
 
-### Running Experiments
+### MountainCar Environment
 
 ```bash
-# MountainCar environment
 python src/environments/mountain_car.py --agent=ppo --shaping=potential --timesteps=10000
 python src/environments/mountain_car.py --agent=dqn --shaping=naive --timesteps=5000
 python src/environments/mountain_car.py --agent=q-learning --shaping=none --timesteps=2000
-
-# Montezuma's Revenge environment
-python src/environments/montezumas_revenge.py --agent=ppo --shaping=potential --timesteps=100000
 ```
 
-### Development
+### Montezuma's Revenge Environments
+
+Each environment file has its own wandb project and fixed state space configuration:
+
+**RAM-only (recommended for speedrunning):**
+```bash
+python src/environments/montezuma_ram.py --timesteps 2500000 --shaping=manhattan --checkpoint-interval 500000
+```
+
+**RGB:**
+```bash
+python src/environments/montezuma_rgb.py --timesteps 1000000 --shaping=manhattan
+```
+
+**RGB+RAM (Dictionary, MultiInputPolicy):**
+```bash
+python src/environments/montezuma_rgb_ram.py --timesteps 1000000
+```
+
+**Grayscale:**
+```bash
+python src/environments/montezuma_grey.py --timesteps 1000000
+```
+
+**Grayscale+RAM:**
+```bash
+python src/environments/montezuma_grey_ram.py --timesteps 1000000
+```
+
+### Continuing Training from Checkpoint
 
 ```bash
-# Run tests
+python src/environments/montezuma_ram.py \
+    --continue-from ./checkpoints/checkpoint_2500000_steps.zip \
+    --timesteps 1000000 \
+    --checkpoint-interval 500000
+```
+
+**Important:** Use the same environment file as the original training!
+
+### Common CLI Options
+
+All Montezuma environment scripts support:
+- `--timesteps`: Number of training timesteps
+- `--seed`: Random seed (default: 42)
+- `--device`: cuda or cpu (default: cuda)
+- `--shaping`: Reward shaping method (None, "manhattan")
+- `--checkpoint-path`: Directory for checkpoints (default: ./checkpoints)
+- `--checkpoint-interval`: Save checkpoint every N timesteps (default: 100000)
+- `--continue-from`: Path to checkpoint file to continue training
+- `--save-checkpoints`: Directory for saving during continued training
+- `--no-wandb`: Disable wandb logging
+- `--project`: WandB project name (default: auto-detected from script)
+
+---
+
+## 📦 Checkpointing
+
+### What are Checkpoints?
+
+Checkpoints are saved states of your trained model at specific points during training. They contain:
+- **Model Weights**: Current neural network weights
+- **Optimizer State**: Optimizer state (for continuous training)
+- **Training Metadata**: Timesteps, hyperparameters, etc.
+
+### What are VecNormalize Stats?
+
+**VecNormalize** is a wrapper that normalizes observations and rewards to stabilize training. The "Stats" are:
+- **Running Mean**: Average values of observations/rewards
+- **Running Variance**: Variance of observations/rewards
+- **Count**: Number of samples used for statistics
+
+**Why are they important?**
+
+When continuing from a checkpoint, VecNormalize stats **must** be loaded, otherwise:
+- Normalization starts from scratch
+- Model receives different normalized inputs
+- Training can become unstable or performance drops
+
+### Checkpoint Files
+
+Stable-Baselines3 saves checkpoints as:
+- **Model**: `checkpoint_XXXXXX_steps.zip` (contains model weights, optimizer state, metadata)
+- **VecNormalize Stats**: `checkpoint_XXXXXX_steps_vecnormalize.pkl` (normalization statistics)
+
+Example:
+```
+checkpoints/
+├── checkpoint_1000000_steps.zip
+├── checkpoint_1000000_steps_vecnormalize.pkl
+├── checkpoint_2000000_steps.zip
+└── checkpoint_2000000_steps_vecnormalize.pkl
+```
+
+### How Checkpointing Works
+
+Checkpointing is **always enabled** when `--checkpoint-path` is provided. Checkpoints are automatically saved:
+- Model: `checkpoint_XXXXXX_steps.zip`
+- VecNormalize Stats: `checkpoint_XXXXXX_steps_vecnormalize.pkl`
+
+The system automatically:
+1. Saves checkpoints during training at specified intervals
+2. Loads VecNormalize stats before loading the model (critical!)
+3. Preserves timestep counter for continuous training
+
+---
+
+## 🧪 Development
+
+### Running Tests
+
+```bash
+# All tests
 pytest
 
-# Run specific test files
+# Specific test files
 pytest tests/test_mc.py
 pytest tests/test_mr.py
 pytest tests/test_benchmark.py
+pytest tests/test_dependencies.py
 
+# Quick environment verification (all state spaces)
+pytest tests/test_all_environments.py
+```
+
+### Code Quality
+
+```bash
 # Format code
 ruff format .
 
 # Run linter
 ruff check .
-```
-
-## Architecture
-
-```mermaid
----
-config:
-  look: neo
----
-flowchart TD
- subgraph Environments["Environments"]
-        Env1["MountainCar-v0<br>(mountain_car.py)"]
-        Env2@{ label: "Montezuma's Revenge<br>(montezumas_revenge.py)" }
-  end
- subgraph subGraph1["Shaping Methods"]
-        S1["Potential-Based<br>(potential_based.py)"]
-        S2["Naive Dense<br>(naive_dense.py)"]
-        S3["No Shaping"]
-  end
- subgraph Agents["Agents"]
-        A1["PPO<br>(ppo.py)"]
-        A2["DQN<br>(dqn.py)"]
-        A3["Q-Learning<br>(q_learning.py)"]
-  end
- subgraph subGraph3["Available Components"]
-    direction LR
-        Environments
-        subGraph1
-        Agents
-  end
- subgraph subGraph4["Execution Pipeline"]
-        step1["Experiment Script selects Environment<br>(e.g. MountainCar)"]
-        step2["Apply Shaping Method<br>(e.g. Potential-Based)"]
-        step3["Initialize Agent<br>(e.g. PPO)"]
-        step4["Train Agent on Wrapped Env"]
-        step5["Log metrics to Weights &amp; Biases"]
-  end
-    step1 --> step2
-    step2 --> step3
-    step3 --> step4
-    step4 --> step5
-    Env2@{ shape: rect}
-    style Env1 fill:#FDEDEC,stroke:#B03A2E,stroke-width:2px,color:#A93226
-    style Env2 fill:#FDEDEC,stroke:#B03A2E,stroke-width:2px,color:#A93226
-    style S1 fill:#D5F5E3,stroke:#239B56,stroke-width:2px,color:#1D8348
-    style S2 fill:#D5F5E3,stroke:#239B56,stroke-width:2px,color:#1D8348
-    style S3 fill:#D5F5E3,stroke:#239B56,stroke-width:2px,color:#1D8348
-    style A1 fill:#D6EAF8,stroke:#2874A6,stroke-width:2px,color:#21618C
-    style A2 fill:#D6EAF8,stroke:#2874A6,stroke-width:2px,color:#21618C
-    style A3 fill:#D6EAF8,stroke:#2874A6,stroke-width:2px,color:#21618C
 ```
 
 ---
@@ -166,7 +209,7 @@ flowchart TD
 - **pygame** - Environment rendering
 - **numpy** - Scientific computing
 - **matplotlib** - Visualization
-- **opencv-python** - Image processing (for Montezuma's Revenge test wrapper)
+- **opencv-python** - Image processing
 - **jupyter** - Interactive notebooks
 - **wandb** - Experiment tracking and logging
 - **stable-baselines3** - RL algorithm implementations
