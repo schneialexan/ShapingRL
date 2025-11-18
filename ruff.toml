@@ -1,0 +1,11 @@
+# Ruff configuration file
+
+# Ignore E402 (module level import not at top of file) in test files
+# This is necessary because test files need to modify sys.path before imports
+[lint]
+ignore = ["E402"]
+
+# Or alternatively, only ignore in tests directory:
+# [lint.per-file-ignores]
+# "tests/**/*.py" = ["E402"]
+

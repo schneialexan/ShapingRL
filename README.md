@@ -1,8 +1,6 @@
-# ShapingRL
+# 📈 ShapingRL
 
 Reward Shaping and Potential-Based Methods in Reinforcement Learning
-
-This repository contains the implementation and experiments for our university project comparing naive dense reward shaping against potential-based shaping methods in Reinforcement Learning.
 
 ## 📚 Project Overview
 
@@ -14,20 +12,12 @@ This repository contains the implementation and experiments for our university p
 Compare naïve dense shaping against potential-based shaping across sparse-reward tasks to identify when shaping accelerates learning versus when it biases policies.
 
 ### Tasks
-https://docs.google.com/document/d/1xXon4ktpAdHPizVb3PvXX6tmJmtjUxi2Wyn-aixLfps/edit?tab=t.0
+
 - Implement standard RL algorithms (Q-learning, PPO, DQN) on sparse-reward tasks (MountainCar, Atari Montezuma's Revenge)
 - Compare naive reward shaping (dense rewards, penalties) with potential-based shaping
 - Study the impact on convergence, exploration, and policy optimality
 - Analyze sensitivity to mis-specified shaping potentials
 - Provide guidelines: When is shaping helpful, harmful, or unnecessary?
-
-### Get Environment
-Conda:
-```cmd
-conda create -n ShapingRL python=3.13 -y
-conda activate ShapingRL
-pip install -r requirements.txt
-```
 
 ### References
 
@@ -39,267 +29,201 @@ pip install -r requirements.txt
 
 ## 🏗️ Repository Structure
 
-```
+```text
 ShapingRL/
 ├── src/                          # Source code
 │   ├── agents/                   # RL algorithm implementations
-│   │   ├── q_learning.py        # Tabular Q-Learning
-│   │   ├── dqn.py               # Deep Q-Network
-│   │   └── ppo.py               # Proximal Policy Optimization
-│   ├── core/                     # Core utilities
-│   │   └── replay_buffer.py     # Experience replay buffer
+│   ├── core/                     # Core utilities (config, seeds, wandb)
 │   ├── environments/             # Environment wrappers
-│   │   └── mountain_car.py      # MountainCar environment wrapper
-│   │   └── montezumas_revenge.py   # MountainCar environment wrapper
-│   └── shaping/                  # Reward shaping methods
-│       ├── naive_dense.py       # Naive dense reward shaping
-│       └── potential_based.py   # Potential-based reward shaping
+│   │   ├── mountain_car.py      # MountainCar environment
+│   │   ├── montezuma.py         # Montezuma base environment (make_montezuma)
+│   │   ├── montezuma_rgb.py     # RGB state space training
+│   │   ├── montezuma_ram.py     # RAM-only state space training
+│   │   ├── montezuma_rgb_ram.py # RGB+RAM dictionary training
+│   │   ├── montezuma_grey.py    # Grayscale training
+│   │   └── montezuma_grey_ram.py # Grey+RAM training
+│   ├── shaping/                  # Reward shaping methods
+│   └── training/                 # Training utilities
 ├── tests/                        # Unit tests
-├── notebooks/                    # Jupyter notebooks for experiments
-│   └── exploratory_analysis.ipynb
+├── notebooks/                    # Jupyter notebooks
 ├── flake.nix                    # Nix flake for reproducible dev environment
-├── pyproject.toml               # Python project metadata and dependencies
-├── requirements.txt             # Pip requirements file
-├── environment.yml              # Conda environment file
-└── CONTRIBUTING.md              # Contributing guidelines
-```
-
----
-
-## 🚀 Quick Start
-
-### Option 1: Using Nix (Recommended)
-
-Nix provides a fully reproducible development environment that works identically across all systems.
-
-#### Prerequisites
-
-**Install Nix:**
-
-Visit [nixos.org/download](https://nixos.org/download/) for the latest installation instructions, or follow the quick guide below:
-
-**Linux & macOS:**
-```bash
-sh <(curl -L https://nixos.org/nix/install) --daemon
-```
-
-**Windows (WSL2):**
-1. Install WSL2 if not already installed:
-   ```powershell
-   wsl --install
-   ```
-2. Open Ubuntu from WSL and install Nix:
-   ```bash
-   sh <(curl -L https://nixos.org/nix/install) --daemon
-   ```
-
-**Docker:**
-```bash
-docker run -it nixos/nix
-```
-
-**Enable flakes:**
-```bash
-mkdir -p ~/.config/nix
-echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
-```
-
-#### Get Started
-
-1. **Clone and enter the environment:**
-   ```bash
-   git clone https://github.com/btwbrauer/ShapingRL.git
-   cd ShapingRL
-   nix develop
-   ```
-
-2. **Start working:**
-   ```bash
-   # Launch Jupyter
-   jupyter notebook
-   
-   # Or run scripts directly
-   python src/agents/q_learning.py
-   
-   # Run tests
-   pytest
-   ```
-
-#### GPU Support
-
-The flake **automatically detects** your GPU and installs the appropriate PyTorch:
-
-- **AMD GPU (Linux):** Automatically uses `torchWithRocm`
-- **NVIDIA GPU (Linux):** Use `nix develop .#cuda` for CUDA support
-- **macOS:** Automatically uses `torch` with Metal acceleration
-- **No GPU:** Falls back to CPU-only PyTorch
-
-The default `nix develop` command detects your hardware at runtime!
-
-### Option 2: Using Pip/Conda
-
-For users who prefer traditional Python tools:
-
-#### Using pip
-
-> ⚠️ Disclaimer for **macOS apple silicon** installations
-> 
-> You may encounter a `hint: This error likely indicates that you need to install a library that provides "SDL.h" ...` error while installing the package pygame@2.6.1 on macOS. Several Stackoverflow posts and the official documentation (https://www.pygame.org/wiki/MacCompile) suggest installing some arbitrary sdl packages with brew to fix the compilation. Do not even bother as some of these packages don't even exist anymore and newer versions don't work. **Just use conda.**
-
-1. **Setup:**
-   ```bash
-   git clone https://github.com/btwbrauer/ShapingRL.git
-   cd ShapingRL
-   python3 -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   # CPU version
-   pip install -e .
-   
-   # For NVIDIA GPU
-   pip install torch --index-url https://download.pytorch.org/whl/cu121
-   pip install -e .
-   
-   # For AMD GPU
-   pip install torch --index-url https://download.pytorch.org/whl/rocm6.0
-   pip install -e .
-   ```
-
-#### Using Conda
-
-```bash
-git clone https://github.com/btwbrauer/ShapingRL.git
-cd ShapingRL
-conda env create -f environment.yml
-conda activate rl-shaping
+└── requirements.txt             # Pip requirements file
 ```
 
 ---
 
 ## 🎯 Usage
 
-### Running Experiments
+### MountainCar Environment
 
 ```bash
-# Launch Jupyter
-jupyter notebook
-
-# Run individual agents
-python src/agents/q_learning.py
-python src/agents/dqn.py
-python src/agents/ppo.py
+python src/environments/mountain_car.py --agent=ppo --shaping=potential --timesteps=10000
+python src/environments/mountain_car.py --agent=dqn --shaping=naive --timesteps=5000
+python src/environments/mountain_car.py --agent=q-learning --shaping=none --timesteps=2000
 ```
 
-### Development
+### Montezuma's Revenge Environments
+
+Each environment file has its own wandb project and fixed state space configuration:
+
+**RAM-only (recommended for speedrunning):**
+```bash
+python src/environments/montezuma_ram.py --timesteps 2500000 --shaping=manhattan --checkpoint-interval 500000
+```
+
+**RGB:**
+```bash
+python src/environments/montezuma_rgb.py --timesteps 1000000 --shaping=manhattan
+```
+
+**RGB+RAM (Dictionary, MultiInputPolicy):**
+```bash
+python src/environments/montezuma_rgb_ram.py --timesteps 1000000
+```
+
+**Grayscale:**
+```bash
+python src/environments/montezuma_grey.py --timesteps 1000000
+```
+
+**Grayscale+RAM:**
+```bash
+python src/environments/montezuma_grey_ram.py --timesteps 1000000
+```
+
+### Continuing Training from Checkpoint
+
+```bash
+python src/environments/montezuma_ram.py \
+    --continue-from ./checkpoints/checkpoint_2500000_steps.zip \
+    --timesteps 1000000 \
+    --checkpoint-interval 500000
+```
+
+**Important:** Use the same environment file as the original training!
+
+### Common CLI Options
+
+All Montezuma environment scripts support:
+- `--timesteps`: Number of training timesteps
+- `--seed`: Random seed (default: 42)
+- `--device`: cuda or cpu (default: cuda)
+- `--shaping`: Reward shaping method (None, "manhattan")
+- `--checkpoint-path`: Directory for checkpoints (default: ./checkpoints)
+- `--checkpoint-interval`: Save checkpoint every N timesteps (default: 100000)
+- `--continue-from`: Path to checkpoint file to continue training
+- `--save-checkpoints`: Directory for saving during continued training
+- `--no-wandb`: Disable wandb logging
+- `--project`: WandB project name (default: auto-detected from script)
+
+---
+
+## 📦 Checkpointing
+
+### What are Checkpoints?
+
+Checkpoints are saved states of your trained model at specific points during training. They contain:
+- **Model Weights**: Current neural network weights
+- **Optimizer State**: Optimizer state (for continuous training)
+- **Training Metadata**: Timesteps, hyperparameters, etc.
+
+### What are VecNormalize Stats?
+
+**VecNormalize** is a wrapper that normalizes observations and rewards to stabilize training. The "Stats" are:
+- **Running Mean**: Average values of observations/rewards
+- **Running Variance**: Variance of observations/rewards
+- **Count**: Number of samples used for statistics
+
+**Why are they important?**
+
+When continuing from a checkpoint, VecNormalize stats **must** be loaded, otherwise:
+- Normalization starts from scratch
+- Model receives different normalized inputs
+- Training can become unstable or performance drops
+
+### Checkpoint Files
+
+Stable-Baselines3 saves checkpoints as:
+- **Model**: `checkpoint_XXXXXX_steps.zip` (contains model weights, optimizer state, metadata)
+- **VecNormalize Stats**: `checkpoint_XXXXXX_steps_vecnormalize.pkl` (normalization statistics)
+
+Example:
+```
+checkpoints/
+├── checkpoint_1000000_steps.zip
+├── checkpoint_1000000_steps_vecnormalize.pkl
+├── checkpoint_2000000_steps.zip
+└── checkpoint_2000000_steps_vecnormalize.pkl
+```
+
+### How Checkpointing Works
+
+Checkpointing is **always enabled** when `--checkpoint-path` is provided. Checkpoints are automatically saved:
+- Model: `checkpoint_XXXXXX_steps.zip`
+- VecNormalize Stats: `checkpoint_XXXXXX_steps_vecnormalize.pkl`
+
+The system automatically:
+1. Saves checkpoints during training at specified intervals
+2. Loads VecNormalize stats before loading the model (critical!)
+3. Preserves timestep counter for continuous training
+
+---
+
+## 🧪 Development
+
+### Running Tests
+
+```bash
+# All tests
+pytest
+
+# Specific test files
+pytest tests/test_mc.py
+pytest tests/test_mr.py
+pytest tests/test_benchmark.py
+pytest tests/test_dependencies.py
+
+# Quick environment verification (all state spaces)
+pytest tests/test_all_environments.py
+```
+
+### Code Quality
 
 ```bash
 # Format code
-black src/
+ruff format .
 
 # Run linter
-flake8 src/
-
-# Run tests
-pytest
-```
-
-## Architecture
-
-```mermaid
----
-config:
-  look: neo
----
-flowchart TD
- subgraph Environments["Environments"]
-        Env1["MountainCar-v0<br>(mountain_car.py)"]
-        Env2@{ label: "Montezuma's Revenge<br>(montezumas_revenge.py)" }
-  end
- subgraph subGraph1["Shaping Methods"]
-        S1["Potential-Based<br>(potential_based.py)"]
-        S2["Naive Dense<br>(naive_dense.py)"]
-        S3["No Shaping"]
-  end
- subgraph Agents["Agents"]
-        A1["PPO<br>(ppo.py)"]
-        A2["DQN<br>(dqn.py)"]
-        A3["Q-Learning<br>(q_learning.py)"]
-  end
- subgraph subGraph3["Available Components"]
-    direction LR
-        Environments
-        subGraph1
-        Agents
-  end
- subgraph subGraph4["Execution Pipeline"]
-        step1["Experiment Script selects Environment<br>(e.g. MountainCar)"]
-        step2["Apply Shaping Method<br>(e.g. Potential-Based)"]
-        step3["Initialize Agent<br>(e.g. PPO)"]
-        step4["Train Agent on Wrapped Env"]
-        step5["Log metrics to Weights &amp; Biases"]
-  end
-    step1 --> step2
-    step2 --> step3
-    step3 --> step4
-    step4 --> step5
-    Env2@{ shape: rect}
-    style Env1 fill:#FDEDEC,stroke:#B03A2E,stroke-width:2px,color:#A93226
-    style Env2 fill:#FDEDEC,stroke:#B03A2E,stroke-width:2px,color:#A93226
-    style S1 fill:#D5F5E3,stroke:#239B56,stroke-width:2px,color:#1D8348
-    style S2 fill:#D5F5E3,stroke:#239B56,stroke-width:2px,color:#1D8348
-    style S3 fill:#D5F5E3,stroke:#239B56,stroke-width:2px,color:#1D8348
-    style A1 fill:#D6EAF8,stroke:#2874A6,stroke-width:2px,color:#21618C
-    style A2 fill:#D6EAF8,stroke:#2874A6,stroke-width:2px,color:#21618C
-    style A3 fill:#D6EAF8,stroke:#2874A6,stroke-width:2px,color:#21618C
+ruff check .
 ```
 
 ---
 
 ## 📦 Dependencies
 
-Core dependencies include:
+### Core Dependencies
+
 - **torch** - Deep learning framework (DQN, PPO)
 - **gymnasium** - RL environments (MountainCar, Atari)
 - **ale-py** - Atari Learning Environment
 - **pygame** - Environment rendering
-- **numpy, pandas, scipy** - Scientific computing
-- **matplotlib, seaborn** - Visualization
+- **numpy** - Scientific computing
+- **matplotlib** - Visualization
+- **opencv-python** - Image processing
 - **jupyter** - Interactive notebooks
-- **pytest, black, flake8** - Development tools
+- **wandb** - Experiment tracking and logging
+- **stable-baselines3** - RL algorithm implementations
 
-See `requirements.txt` or `pyproject.toml` for complete dependency list
+### Development Tools
 
----
+- **pytest** - Testing framework
+- **ruff** - Code formatting and linting
 
-## 🤝 Contributing
+### Additional Dependencies
 
-This is a university group project. Team members should:
+- **imageio**, **imageio-ffmpeg**, **moviepy**, **pillow** - Video recording for wandb
 
-1. Create feature branches for new work
-2. Format code with Black before committing
-3. Write tests for new functionality
-4. Update documentation as needed
-
-See `CONTRIBUTING.md` for detailed guidelines.
-
----
-
-## 🔧 Troubleshooting
-
-**Module not found errors:**
-- Nix: Ensure you're inside `nix develop`
-- Pip: Activate virtual environment and run `pip install -e .`
-
-**Atari ROMs not found:**
-- Run: `ale-import-roms --import-from-pkg atari_py.atari_roms`
-
-**GPU not detected:**
-- Nix: Change `torchWithRocm` to `torchWithCuda` in `flake.nix` (line 24) for NVIDIA
-- Pip/Conda: Install PyTorch with correct GPU support (see setup instructions)
-- WSL2: Ensure GPU drivers are installed on Windows host
+See `requirements.txt` or `flake.nix` for complete dependency list with versions.
 
 ---
 
@@ -307,10 +231,6 @@ See `CONTRIBUTING.md` for detailed guidelines.
 
 - Björn Brauer
 - Leandro Gregorini
-- Alexandru Schneider
 - Flavio Kluser
+- Alexandru Schneider
 - Roman Zberg
-
-## 📄 License
-
-MIT License

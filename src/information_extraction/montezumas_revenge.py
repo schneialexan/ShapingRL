@@ -1,5 +1,4 @@
 from abc import ABC
-import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import patches
 import gymnasium as gym
@@ -26,7 +25,7 @@ class MontezumasRAMInformationExtractor:
             room_state=62,
             score_0=19,
             score_1=20,
-            score_2=21
+            score_2=21,
         )
 
     def get_ram(self):
@@ -40,23 +39,17 @@ class MontezumasRAMInformationExtractor:
             1: y
         """
         ram = self._wrapper.env.unwrapped.ale.getRAM()
-        return int(ram[
-                       self._variable_to_ram_index_dict["player_x"]
-                   ]), int(ram[
-                               self._variable_to_ram_index_dict["player_y"]
-                           ]) - 107
+        return int(ram[self._variable_to_ram_index_dict["player_x"]]), int(
+            ram[self._variable_to_ram_index_dict["player_y"]]
+        ) - 107
 
     def get_player_number_of_lives(self):
         ram = self._wrapper.env.unwrapped.ale.getRAM()
-        return ram[
-            self._variable_to_ram_index_dict["num_lives"]
-        ]
+        return ram[self._variable_to_ram_index_dict["num_lives"]]
 
     def get_room_id(self):
         ram = self._wrapper.env.unwrapped.ale.getRAM()
-        return ram[
-            self._variable_to_ram_index_dict["room_state"]
-        ]
+        return ram[self._variable_to_ram_index_dict["room_state"]]
 
 
 class MontezumasInformationExtractor(ABC):
@@ -66,30 +59,38 @@ class MontezumasInformationExtractor(ABC):
     CHARACTER_NECK_RGB = np.array([228, 111, 111])
 
     @staticmethod
-    def draw_rect(x, y, width, height, ax, label_top=None, edgecolor='red', fill_color=None):
+    def draw_rect(
+        x, y, width, height, ax, label_top=None, edgecolor="red", fill_color=None
+    ):
         # Rectangle: (x, y) is top-left corner
 
         additional_params_rect = {}
         if fill_color is not None:
             additional_params_rect["facecolor"] = fill_color
         else:
-            additional_params_rect["facecolor"] = 'none'  # transparent fill
+            additional_params_rect["facecolor"] = "none"  # transparent fill
 
         if edgecolor is not None:
-            additional_params_rect['edgecolor'] = edgecolor
+            additional_params_rect["edgecolor"] = edgecolor
         else:
-            additional_params_rect['edgecolor'] = 'none'
+            additional_params_rect["edgecolor"] = "none"
 
         rect = patches.Rectangle(
-            (x, MontezumasInformationExtractor.GAME_IMAGE_FRAME_HEIGHT - y),  # (x, y) position
-            width, height,  # width, height
+            (
+                x,
+                MontezumasInformationExtractor.GAME_IMAGE_FRAME_HEIGHT - y,
+            ),  # (x, y) position
+            width,
+            height,  # width, height
             linewidth=1,
-            **additional_params_rect
+            **additional_params_rect,
         )
 
         ax.text(
-            x + 1, MontezumasInformationExtractor.GAME_IMAGE_FRAME_HEIGHT - y - 3, label_top,
-            color='lime',
+            x + 1,
+            MontezumasInformationExtractor.GAME_IMAGE_FRAME_HEIGHT - y - 3,
+            label_top,
+            color="lime",
             fontsize=6,
         )
 
@@ -103,7 +104,9 @@ class MontezumasInformationExtractor(ABC):
 
         rect_size = 5
 
-        base_x = (MontezumasInformationExtractor.GAME_IMAGE_FRAME_WIDTH // 2) - (rect_size / 2)
+        base_x = (MontezumasInformationExtractor.GAME_IMAGE_FRAME_WIDTH // 2) - (
+            rect_size / 2
+        )
         y = MontezumasInformationExtractor.GAME_IMAGE_FRAME_HEIGHT - 14
 
         positions = [
@@ -133,7 +136,7 @@ class MontezumasInformationExtractor(ABC):
             x = int(x)
             y = int(MontezumasInformationExtractor.GAME_IMAGE_FRAME_HEIGHT - y)
 
-            roi = obs[y:y + rect_size, x:x + rect_size]
+            roi = obs[y : y + rect_size, x : x + rect_size]
             has_non_black = np.any(roi != 0)
 
             if has_non_black:
@@ -158,7 +161,9 @@ class MontezumasInformationExtractor(ABC):
             |-------------------------------|
         """
 
-        matches = np.all(MontezumasInformationExtractor.CHARACTER_NECK_RGB == obs, axis=-1)
+        matches = np.all(
+            MontezumasInformationExtractor.CHARACTER_NECK_RGB == obs, axis=-1
+        )
         indices = np.argwhere(matches)
 
         if len(indices) > 0:
@@ -166,7 +171,7 @@ class MontezumasInformationExtractor(ABC):
             return v, u
 
         diff = obs - MontezumasInformationExtractor.CHARACTER_NECK_RGB
-        dist_squared = np.sum(diff ** 2, axis=-1)
+        dist_squared = np.sum(diff**2, axis=-1)
 
         index_min = np.unravel_index(np.argmin(dist_squared), dist_squared.shape)
 
@@ -176,7 +181,9 @@ class MontezumasInformationExtractor(ABC):
 
     @staticmethod
     def get_approximated_character_coords(obs):
-        v, u = MontezumasInformationExtractor.get_approximated_character_position(obs, )
+        v, u = MontezumasInformationExtractor.get_approximated_character_position(
+            obs,
+        )
         # obs.shape =  (210, 160, 3)
 
         x = u

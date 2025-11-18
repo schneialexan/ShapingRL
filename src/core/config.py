@@ -19,16 +19,16 @@ CONFIG = {
         "total_timesteps": 200_000,
         "verbose": 1,
     },
-    "q_learning": {
+    "q-learning": {
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon_start": 1.0,
         "epsilon_min": 0.02,
         "epsilon_decay": 0.995,
-        "n_bins": [18,14],
+        "n_bins": [18, 14],
         "total_episodes": 1000,
     },
     "wandb": {
-        "project": "mountaincar-reward-shaping",
-    }
+        "project": "Mountain Car",  # Default project name (can be overridden by environment scripts)
+    },
 }

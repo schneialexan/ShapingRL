@@ -1,40 +1,35 @@
+# All dependencies set to exact version numbers from the locked Nix-Environment
+
 # Core RL and ML libraries
-torch>=2.0.0
-gymnasium[box2d,atari,accept-rom-license]>=0.29.0
-ale-py>=0.8.0
-pygame>=2.5.0
+torch==2.9.0
+gymnasium[box2d,atari,accept-rom-license]==1.2.2
+ale-py==0.11.2
+pygame==2.6.1
 
 # Logging and experiment tracking
-wandb>=0.16.0
+wandb==0.21.4
 
-# Scientific computing and data handling
-numpy>=1.24.0
-pandas>=2.0.0
-scipy>=1.10.0
+# Scientific computing
+numpy==2.3.4
 
 # Visualization
-matplotlib>=3.7.0
-seaborn>=0.12.0
+matplotlib==3.10.5
+
+# Image processing (for Montezuma's Revenge test wrapper)
+opencv-python==4.12.0
 
 # Jupyter for notebooks
-jupyter>=1.0.0
+jupyter==5.8.1
 
-# Utilities
-tqdm>=4.65.0
-pyyaml>=6.0
+# Development tools
+pytest==8.4.2
+ruff==0.14.4
 
-# Development tools (optional, comment out if not needed)
-pytest>=7.0.0
-black>=23.0.0
-flake8>=6.0.0
-
-# dependencies for enabling saving videos to wandb
-imageio==2.37.0
+# Dependencies for enabling saving videos to wandb
+imageio==2.37.2
 imageio-ffmpeg==0.6.0
-moviepy==2.2.1
-pillow==11.3.0
-proglog==0.1.12
-python-dotenv==1.2.1
+moviepy==2.1.2
+pillow==12.0.0
 
 # Stable Baselines3
-stable-baselines3[extra]
+stable-baselines3[extra]==2.7.0

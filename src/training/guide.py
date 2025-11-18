@@ -29,21 +29,16 @@ class Guideline:
         self._guideline_items = guideline_items
 
     def get_guide_items(self) -> deque[GuidelineItem]:
+        # Return copy to prevent external modification of internal state
         return copy(self._guideline_items)
 
 
 class GuideLineBuilder:
-
     def __init__(self):
         self._checkpoints: deque[GuidelineItem] = deque()
 
     def set_goal_go_to(
-        self,
-        name: str,
-        grid: int,
-        row: int,
-        cell: int,
-        n_times: int = 1
+        self, name: str, grid: int, row: int, cell: int, n_times: int = 1
     ) -> Self:
         self._checkpoints.append(
             GuidelineItem(name=name, n_times=n_times, grid=grid, cell=cell, row=row)
@@ -52,24 +47,14 @@ class GuideLineBuilder:
         return self
 
     def then_set_goal_go_to(
-        self,
-        name: str,
-        grid: int,
-        row: int,
-        cell: int,
-        n_times: int = 1
+        self, name: str, grid: int, row: int, cell: int, n_times: int = 1
     ) -> Self:
-        self.set_goal_go_to(
-            name=name,
-            n_times=n_times,
-            grid=grid,
-            cell=cell,
-            row=row
-        )
+        self.set_goal_go_to(name=name, n_times=n_times, grid=grid, cell=cell, row=row)
 
         return self
 
     def build(self) -> Guideline:
+        # Copy checkpoints to prevent builder state from affecting built guideline
         guideline_items = copy(self._checkpoints)
 
         return Guideline(guideline_items)

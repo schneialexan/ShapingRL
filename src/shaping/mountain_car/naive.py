@@ -1,5 +1,6 @@
 import gymnasium as gym
 
+
 class NaiveDenseWrapper(gym.Wrapper):
     def __init__(self, env, shaping_coef=0.1):
         super().__init__(env)
@@ -13,12 +14,12 @@ class NaiveDenseWrapper(gym.Wrapper):
         self.last_shaping = shaping_reward
 
         # Log detailed reward composition
-        info['env_reward'] = reward
-        info['shaping_reward'] = shaping_reward
-        info['total_reward'] = total_reward
+        info["env_reward"] = reward
+        info["shaping_reward"] = shaping_reward
+        info["total_reward"] = total_reward
 
         return obs, total_reward, terminated, truncated, info
 
     def _shaping(self, obs):
-        # Example: encourage moving to the right
+        # Simple shaping: encourage moving right (obs[0] is position, positive = right)
         return self.shaping_coef * obs[0]
