@@ -18,11 +18,11 @@ from pathlib import Path
 from gymnasium import ObservationWrapper
 from stable_baselines3.common.vec_env import VecVideoRecorder
 
-from shaping.montezuma.naive_dense import NaiveDenseWrapper
-from shaping.montezuma.montezuma_potential_based import MontezumaPotentialBasedWrapper
+from shaping.montezuma.grid_based import TestDenseWrapper
+from shaping.montezuma.naive import NaiveDenseWrapper
+from shaping.montezuma.potential import MontezumaPotentialBasedWrapper
 from shaping.montezuma.reward_definition_factory import MontezumasTestShaperRewardDefinition, \
     RewardDefinition
-from shaping.montezuma.test import TestDenseWrapper
 from training.coach import MontezumasKeyGuidelineCoach, MontezumasKeyGuidelineCoachForcingOrder
 from util import PROJECT_ROOT_PATH
 
