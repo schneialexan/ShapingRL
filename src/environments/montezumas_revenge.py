@@ -3,6 +3,7 @@ import glob
 import logging
 import re
 from contextlib import contextmanager
+from typing import Literal
 
 import gymnasium as gym
 import ale_py  # must be there, do not remove !!!!!!!!!!!!!!!!!!!!!!!
@@ -19,6 +20,8 @@ from stable_baselines3.common.vec_env import VecVideoRecorder
 
 from shaping.montezuma.naive_dense import NaiveDenseWrapper
 from shaping.montezuma.montezuma_potential_based import MontezumaPotentialBasedWrapper
+from shaping.montezuma.reward_definition_factory import MontezumasTestShaperRewardDefinition, \
+    RewardDefinition
 from shaping.montezuma.test import TestDenseWrapper
 from training.coach import MontezumasKeyGuidelineCoach, MontezumasKeyGuidelineCoachForcingOrder
 from util import PROJECT_ROOT_PATH
@@ -30,6 +33,13 @@ from agents.ppo import PPOTrainer
 from agents.dqn import DQNTrainer
 from agents.q_learning import QLearningTrainer
 
+ReducedActionSpaceConfiguration = Literal['only_basic_movements',
+'extended_movements',
+'extended_movements_fire'
+]
+
+ShapingConfigurations = Literal['naive', 'potential', 'test']
+
 
 class ReducedActionSpaceWrapper(gym.ActionWrapper):
     """Wrapper to reduce action space to a meaningful subset.
@@ -39,14 +49,13 @@ class ReducedActionSpaceWrapper(gym.ActionWrapper):
     """
 
     action_sets = {
-
         'only_basic_movements': list(range(0, 6)),  # NOOP, FIRE, UP, RIGHT, LEFT, DOWN
         'extended_movements': list(range(0, 10)),  # + [UP/DOWN][LEFT/RIGHT]
         'extended_movements_fire': list(range(0, 14)),  # + [UP/DOWN/LEFT/RIGHT]FIRE
         # the 4 remaining actions are diagonal jumps
     }
 
-    def __init__(self, env, action_subset=None):
+    def __init__(self, env, action_subset: ReducedActionSpaceConfiguration | None = None):
         super().__init__(env)
         if action_subset is None:
             action_subset = self.action_sets['extended_movements_fire']
@@ -58,35 +67,37 @@ class ReducedActionSpaceWrapper(gym.ActionWrapper):
         return self._action_mapping[act]
 
 
-
-
-
 def make_env(
+    truncate_episode_after_n_steps: int,
     env_name='ALE/MontezumaRevenge-v5',
     render_mode=None,
-    reduce_action_space=False,
-    shaping='test',
-    debugging=False
-):
+    reduce_action_space: ReducedActionSpaceConfiguration = None,
+    shaping: ShapingConfigurations = 'test',
+    debugging: bool = False
+) -> tuple[gym.Env, RewardDefinition | None]:
+    reward_definition = None
+
     """Create Montezuma's Revenge environment with optional reduced action space."""
     try:
         env = gym.make(
             env_name,
             render_mode=render_mode,
-            #obs_type='ram'
+            max_episode_steps=truncate_episode_after_n_steps
+            # obs_type='ram'
         )
     except gym.error.Error:
         from gymnasium.envs.registration import register
         register(
             id=env_name,
             entry_point="ale_py.roms:MontezumaRevenge",
-            max_episode_steps=4_000,
+            max_episode_steps=truncate_episode_after_n_steps,
             reward_threshold=3000.0,
         )
         env = gym.make(
             env_name,
             render_mode=render_mode,
-            #obs_type='ram'
+            max_episode_steps=truncate_episode_after_n_steps
+            # obs_type='ram'
         )
     if reduce_action_space:
         env = ReducedActionSpaceWrapper(env)
@@ -104,9 +115,15 @@ def make_env(
             debugging=debugging
         )
     elif shaping == 'test':
-        env = TestDenseWrapper(env)
+        reward_definition = MontezumasTestShaperRewardDefinition(
+            truncate_episode_after_n_steps=truncate_episode_after_n_steps
+        )
+        env = TestDenseWrapper(
+            env,
+            reward_definition=reward_definition
+        )
 
-    return env
+    return env, reward_definition
 
 
 def extract_steps(filename):
@@ -125,46 +142,49 @@ def extract_steps(filename):
     return None
 
 
-def main(args=None):
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--agent', choices=['ppo', 'dqn', 'q_learning'], default='ppo')
-    parser.add_argument('--timesteps', type=int, default=30_000)
-    parser.add_argument('--project', type=str, default='ShapingRL-Montezuma')
-    parser.add_argument('--entity', type=str, default=None)
-    parser.add_argument('--render', action='store_true')
-    parser.add_argument('--debug', action='store_true')
-    parser.add_argument('--reduce_action_space', action='store_true')
-    parser.add_argument('--run-name', type=str, default=None)
-    parser.add_argument('--shaping', type=str, default='test')
-    args = parser.parse_args() if args is None else args
-
-    # Automatically set run name
-    run_name = args.run_name if args.run_name else f"{args.agent}_montezuma"
-
-    if args.debug:
+def main(
+    timesteps: int,
+    truncate_episode_after_n_steps: int,
+    wandb_project: str,
+    wandb_entity: str,
+    agent: Literal['ppo', 'dqn', 'q_learning'],
+    debug: bool,
+    reduced_action_space: ReducedActionSpaceConfiguration,
+    shaping: ShapingConfigurations
+):
+    if debug:
         os.environ["WANDB_MODE"] = "offline"
 
     # Initialize Weights & Biases
     run = wandb.init(
-        project=args.project,
-        entity=args.entity,
+        project=wandb_project,
+        entity=wandb_entity,
         name=run_name,
-        config=vars(args),
+        config={
+            'timesteps': timesteps,
+            'truncate_episode_after_n_steps': truncate_episode_after_n_steps,
+            'debug': debug,
+            'shaping': shaping,
+            'reduced_action_space': reduced_action_space
+        },
         monitor_gym=True
     )
 
     # Create environment
     render_mode = "human" if args.render else 'rgb_array'
-    env = make_env(
-        'ALE/MontezumaRevenge-v5',
+    env, reward_definition = make_env(
+        truncate_episode_after_n_steps=truncate_episode_after_n_steps,
+        env_name='ALE/MontezumaRevenge-v5',
         render_mode=render_mode,
-        reduce_action_space=args.reduce_action_space,
+        reduce_action_space=wandb.config['reduced_action_space'],
         shaping=wandb.config.shaping,
-        debugging=args.debug
+        debugging=wandb.config['debug']
     )
     env.reset(seed=42)
 
-    if args.reduce_action_space:
+    wandb.config.update({'reward_definition': reward_definition.get_reward_definition_log_dict()})
+
+    if reduced_action_space:
         print(f"Action space reduced to {env.action_space.n} actions")
     else:
         print(f"Full action space: {env.unwrapped.get_action_meanings()}")
@@ -185,7 +205,7 @@ def main(args=None):
             video_length=(video_recording_length - 1),
         )
 
-    if args.agent == 'ppo':
+    if agent == 'ppo':
         vec_env = VecNormalize(
             vec_env,
             norm_obs=True,
@@ -195,18 +215,20 @@ def main(args=None):
         )
         trainer = PPOTrainer(
             vec_env,
-            config={'total_timesteps': args.timesteps},
+            config={'total_timesteps': timesteps},
             run=run
         )
-    elif args.agent == 'dqn':
+    elif agent == 'dqn':
         trainer = DQNTrainer(
             vec_env,
-            config={'total_timesteps': args.timesteps},
+            config={'total_timesteps': timesteps},
             run=run
         )
-    else:
+    elif agent == 'q_learning':
         # Approximate number of episodes for Q-learning
-        trainer = QLearningTrainer(env, config={'total_episodes': args.timesteps // 200}, run=run)
+        trainer = QLearningTrainer(env, config={'total_episodes': timesteps // 200}, run=run)
+    else:
+        raise Exception(f'Invalid parameter value {agent = }')
 
     # Train agent
     model_or_q = trainer.train()
@@ -215,9 +237,9 @@ def main(args=None):
     # Save model
     save_dir = os.environ.get('SHAPINGRL_SAVE_DIR', './checkpoints')
     os.makedirs(save_dir, exist_ok=True)
-    fname = os.path.join(save_dir, f'{args.agent}_montezuma_final')
+    fname = os.path.join(save_dir, f'{agent}_montezuma_final')
     try:
-        if args.agent in ['ppo', 'dqn']:
+        if agent in ['ppo', 'dqn']:
             model_or_q.save(fname)
             wandb.save(fname)
         else:
@@ -251,4 +273,36 @@ def main(args=None):
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--agent', choices=['ppo', 'dqn', 'q_learning'], default='ppo')
+    parser.add_argument('--timesteps', type=int, default=30_000)
+    parser.add_argument('--project', type=str, default='ShapingRL-Montezuma')
+    parser.add_argument('--entity', type=str, default=None)
+    parser.add_argument('--render', action='store_true')
+    parser.add_argument('--debug', action='store_true')
+    parser.add_argument(
+        '--reduced-action-space',
+        choices=[
+            'only_basic_movements',
+            'extended_movements',
+            'extended_movements_fire'
+        ],
+        default=None
+    )
+    parser.add_argument('--run-name', type=str, default=None)
+    parser.add_argument('--shaping', type=str, default='test')
+    args = parser.parse_args()
+
+    # Automatically set run name
+    run_name = args.run_name if args.run_name else f"{args.agent}_montezuma"
+
+    main(
+        timesteps=args.timesteps,
+        truncate_episode_after_n_steps=4_000,
+        wandb_entity=args.entity,
+        wandb_project=args.project,
+        agent=args.agent,
+        debug=args.debug,
+        reduced_action_space=args.reduced_action_space,
+        shaping=args.shaping
+    )

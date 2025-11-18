@@ -9,6 +9,7 @@ import wandb
 from information_extraction.montezumas_revenge import MontezumasInformationExtractor, \
     MontezumasRAMInformationExtractor
 from log.montezumas import configure_logging_for_montezumas
+from shaping.montezuma.reward_definition_factory import MontezumasTestShaperRewardDefinition
 from util import PROJECT_ROOT_PATH, create_dir_if_not_exists
 
 configure_logging_for_montezumas('test_dense_wrapper')
@@ -17,10 +18,18 @@ logger = logging.getLogger(__name__)
 
 class TestDenseWrapper(gym.Wrapper):
 
-    def __init__(self, env, n_grid_items_horizontal=7, n_grid_items_vertical=10):
+    def __init__(
+        self,
+        env,
+        reward_definition: MontezumasTestShaperRewardDefinition,
+        n_grid_items_horizontal=7,
+        n_grid_items_vertical=10,
+    ):
         super().__init__(env)
 
         self._info_extractor = MontezumasRAMInformationExtractor(self)
+
+        self.reward_definition: MontezumasTestShaperRewardDefinition = reward_definition
 
         self._last_agent_pos: np.array = None
         self._last_agent_n_lives: int = 5
@@ -43,7 +52,6 @@ class TestDenseWrapper(gym.Wrapper):
 
         self._step_counter = 0
         self._episode_counter = 0
-
         self._falling_distance = 0
 
     def _reset(self):
@@ -151,20 +159,9 @@ class TestDenseWrapper(gym.Wrapper):
 
         self._reset_life_grid_state()
 
-        # self._n_room_grid_items = len(self._room_grid.items())
-        # self._explored_all_grid_items_reward = 30
-        # self._explored_new_grid_item_reward = self._explored_all_grid_items_reward / self._n_room_grid_items
-        #
-        # self._die_reward = -((self._explored_all_grid_items_reward / 4) / 4)
-
         self._n_room_grid_items = len(self._room_grid.items())
-        self._explored_all_grid_items_reward = 30
-        self._explored_new_grid_item_reward = 1
 
-        self._fall_reward = -2
-        self._die_reward = -3
         self._die_position = None
-        # self._game_over_reward = self._die_reward * 2
 
     def step(self, action):
         self._step_counter += 1
@@ -183,7 +180,7 @@ class TestDenseWrapper(gym.Wrapper):
         n_lives = ram_player_lives
         agent_pos = np.array(ram_player_position)
 
-        #self._save_obs(obs, "test position", False, player_pos=ram_player_position)
+        # self._save_obs(obs, "test position", False, player_pos=ram_player_position)
 
         if self._die_position is not None:
             distance_to_die_pos = np.linalg.norm(
@@ -205,12 +202,11 @@ class TestDenseWrapper(gym.Wrapper):
         if n_lives < self._last_agent_n_lives:
             agent_died = True
             # logger.info(f'{self._step_counter}: agent died {self._last_agent_n_lives} => {n_lives}')
-            shaping_reward += self._die_reward
+            shaping_reward += self.reward_definition.die_reward
         if (not self._room_grid[f'{grid_row},{grid_column}']) and (not agent_died):
-            shaping_reward += self._explored_new_grid_item_reward
+            shaping_reward += self.reward_definition.explored_new_grid_item_reward
         elif (self._room_life_grid[f'{grid_row},{grid_column}']) and (not agent_died):
-            # shaping_reward += -0.0001
-            shaping_reward += -0.001
+            shaping_reward += self.reward_definition.visit_already_explored_grid_item_reward
 
         self._room_grid[f'{grid_row},{grid_column}'] = True
         self._room_life_grid[f'{grid_row},{grid_column}'] = True
@@ -238,7 +234,7 @@ class TestDenseWrapper(gym.Wrapper):
 
         if (self._falling_distance > 25) and (not agent_died) and (not is_respawning):
             self._falling_distance = 0
-            shaping_reward += self._fall_reward
+            shaping_reward += self.reward_definition.fall_reward
             self._save_obs(obs, 'punish falling')
             # logger.info(f'{self._step_counter}: falling more than 4 steps')
 
