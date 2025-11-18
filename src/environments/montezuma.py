@@ -231,9 +231,11 @@ def make_montezuma(
 
     # 3. Add reward shaping (optional)
     if shaping == "manhattan":
-        from shaping.montezuma.distance_reward import DistanceRewardWrapper
+        from shaping.montezuma.potential_manhattan import ManhattanPotentialWrapper
 
-        env = DistanceRewardWrapper(env, distance_reward_scale=0.1, debugging=False)
+        env = ManhattanPotentialWrapper(
+            env, gamma=0.99, room_bonus=50.0, debugging=False
+        )
     # Add more shaping methods here as needed
 
     return env
