@@ -333,6 +333,7 @@ if __name__ == '__main__':
         reduced_action_space=args.reduced_action_space,
         shaping=args.shaping,
         add_visited_states_in_observations=args.add_visited_states_in_observations,
-        ppo_n_steps=4096,
+        # ppo_n_steps=4096,
+        ppo_n_steps=16_000,
         ppo_n_epochs=20
     )

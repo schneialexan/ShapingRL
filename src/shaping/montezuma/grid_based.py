@@ -285,12 +285,12 @@ class TestDenseWrapper(gym.Wrapper):
         grid_column = int(agent_pos[0] // self._horizontal_spacing)
         grid_row = int(agent_pos[1] // self._vertical_spacing)
 
-        if (self._falling_distance > 8) and (not agent_died) and (not is_respawning):
+        if (self._falling_distance > 8) and (not agent_died) and (not is_respawning) and (not terminated):
             # self._falling_distance = 0
             shaping_reward += self.reward_definition.fall_reward
             self._save_obs(obs, 'punish falling', player_pos=agent_pos)
             # logger.info(f'{self._step_counter}: falling more than 4 steps')
-        elif (not agent_died) and (not is_respawning):
+        elif (not agent_died) and (not is_respawning) and (not terminated):
             if not self._room_grid[f'{grid_row},{grid_column}']:
                 shaping_reward += self.reward_definition.explored_new_grid_item_reward
             elif self._room_life_grid[f'{grid_row},{grid_column}']:

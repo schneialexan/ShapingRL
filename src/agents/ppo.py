@@ -28,6 +28,7 @@ class PPOTrainer:
             clip_range=self.config.get("clip_range", 0.2),
             ent_coef=self.config.get("ent_coef", 0.01),
             verbose=self.config.get("verbose", 1),
+            n_epochs=self.config.get("n_epochs", 10),
             seed=self.seed,
         )
 
