@@ -24,8 +24,10 @@ class TestDenseWrapper(gym.Wrapper):
             reward_definition: MontezumasTestShaperRewardDefinition,
             n_grid_items_horizontal=7,
             n_grid_items_vertical=10,
+            debug_rendering=True
     ):
         super().__init__(env)
+        self._debug_rendering = debug_rendering
 
         self._info_extractor = MontezumasRAMInformationExtractor(self)
 
@@ -56,6 +58,10 @@ class TestDenseWrapper(gym.Wrapper):
 
         self._last_x_move_direction = None
 
+        self._obs = None
+
+        self._player_pos = None
+
     def _reset(self):
         self._last_agent_n_lives = 5
         self._visited_pos = defaultdict(lambda: False)
@@ -63,6 +69,14 @@ class TestDenseWrapper(gym.Wrapper):
         self._last_agent_pos: np.array = None
         self._falling_distance = 0
         self._last_x_move_direction = None
+
+    def render(self):
+        if self._debug_rendering:
+            return self._save_obs(
+                super().render(), '', save_image=False, player_pos=self._info_extractor.get_player_position()
+            )
+        else:
+            return super().render()
 
     def _draw_not_visited_rect(self, obs, x, y, width, height):
         # Rectangle parameters
@@ -83,7 +97,7 @@ class TestDenseWrapper(gym.Wrapper):
         alpha = rgba_color[3] / 255.0
         cv2.addWeighted(overlay, alpha, obs, 1 - alpha, 0, obs)
 
-    def _save_obs(self, obs, description, debug=False, player_pos=None):
+    def _save_obs(self, obs, description, debug=False, player_pos=None, save_image=True) -> np.array:
         img_dir = f'{PROJECT_ROOT_PATH}/img_debug/{wandb.run.id}/{self._episode_counter:05}_episode_{5 - self._last_agent_n_lives}_lost_lifes/'
         create_dir_if_not_exists(img_dir)
 
@@ -139,13 +153,15 @@ class TestDenseWrapper(gym.Wrapper):
                 [255, 0, 0], 1
             )
 
-        obs = cv2.cvtColor(obs, cv2.COLOR_RGB2BGR)
-
-        cv2.imwrite(f'{img_dir}/{self._step_counter:05}_color_img.jpg', obs)
+        if save_image:
+            obs = cv2.cvtColor(obs, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(f'{img_dir}/{self._step_counter:05}_color_img.jpg', obs)
 
         if debug:
             cv2.imshow("image", obs)
             cv2.waitKey()
+
+        return obs
 
     def _reset_life_grid_state(self):
         self._room_life_grid = {
@@ -169,6 +185,7 @@ class TestDenseWrapper(gym.Wrapper):
     def step(self, action):
         self._step_counter += 1
         obs, reward, terminated, truncated, info = self.env.step(action)
+        self._obs = obs
         shaping_reward = 0
         agent_died = False
         is_respawning = False
@@ -199,20 +216,10 @@ class TestDenseWrapper(gym.Wrapper):
                 is_respawning = True
                 # logger.info(f'{self._step_counter}: respawning')
 
-        grid_column = int(agent_pos[0] // self._horizontal_spacing)
-        grid_row = int(agent_pos[1] // self._vertical_spacing)
-
         if n_lives < self._last_agent_n_lives:
             agent_died = True
             # logger.info(f'{self._step_counter}: agent died {self._last_agent_n_lives} => {n_lives}')
             shaping_reward += self.reward_definition.die_reward
-        if (not self._room_grid[f'{grid_row},{grid_column}']) and (not agent_died):
-            shaping_reward += self.reward_definition.explored_new_grid_item_reward
-        elif (self._room_life_grid[f'{grid_row},{grid_column}']) and (not agent_died):
-            shaping_reward += self.reward_definition.visit_already_explored_grid_item_reward
-
-        self._room_grid[f'{grid_row},{grid_column}'] = True
-        self._room_life_grid[f'{grid_row},{grid_column}'] = True
 
         if self._last_agent_pos is not None:
             last_agent_x = self._last_agent_pos[0]
@@ -253,16 +260,27 @@ class TestDenseWrapper(gym.Wrapper):
 
             self._last_x_move_direction = x_move_direction
 
+        grid_column = int(agent_pos[0] // self._horizontal_spacing)
+        grid_row = int(agent_pos[1] // self._vertical_spacing)
+
+        if (not self._room_grid[f'{grid_row},{grid_column}']) and (not agent_died):
+            shaping_reward += self.reward_definition.explored_new_grid_item_reward
+        elif (self._room_life_grid[f'{grid_row},{grid_column}']) and (not agent_died):
+            shaping_reward += self.reward_definition.visit_already_explored_grid_item_reward
+
+        if (self._falling_distance > 8) and (not agent_died) and (not is_respawning):
+            # self._falling_distance = 0
+            shaping_reward += self.reward_definition.fall_reward
+            self._save_obs(obs, 'punish falling', player_pos=agent_pos)
+            # logger.info(f'{self._step_counter}: falling more than 4 steps')
+        elif (not agent_died) and (not is_respawning):
+            self._room_grid[f'{grid_row},{grid_column}'] = True
+            self._room_life_grid[f'{grid_row},{grid_column}'] = True
+
         if terminated or truncated:
             self._reset()
             self._episode_counter += 1
             self._step_counter = 0
-
-        if (self._falling_distance > 25) and (not agent_died) and (not is_respawning):
-            self._falling_distance = 0
-            shaping_reward += self.reward_definition.fall_reward
-            self._save_obs(obs, 'punish falling', player_pos=agent_pos)
-            # logger.info(f'{self._step_counter}: falling more than 4 steps')
 
         if agent_died:
             self._last_agent_pos = None
