@@ -298,7 +298,7 @@ if __name__ == '__main__':
 
     main(
         timesteps=args.timesteps,
-        truncate_episode_after_n_steps=4_000,
+        truncate_episode_after_n_steps=8_000,
         wandb_entity=args.entity,
         wandb_project=args.project,
         agent=args.agent,

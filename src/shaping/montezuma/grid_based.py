@@ -19,11 +19,11 @@ logger = logging.getLogger(__name__)
 class TestDenseWrapper(gym.Wrapper):
 
     def __init__(
-        self,
-        env,
-        reward_definition: MontezumasTestShaperRewardDefinition,
-        n_grid_items_horizontal=7,
-        n_grid_items_vertical=10,
+            self,
+            env,
+            reward_definition: MontezumasTestShaperRewardDefinition,
+            n_grid_items_horizontal=7,
+            n_grid_items_vertical=10,
     ):
         super().__init__(env)
 
@@ -54,12 +54,15 @@ class TestDenseWrapper(gym.Wrapper):
         self._episode_counter = 0
         self._falling_distance = 0
 
+        self._last_x_move_direction = None
+
     def _reset(self):
         self._last_agent_n_lives = 5
         self._visited_pos = defaultdict(lambda: False)
         self._reset_grid_reward_states()
         self._last_agent_pos: np.array = None
         self._falling_distance = 0
+        self._last_x_move_direction = None
 
     def _draw_not_visited_rect(self, obs, x, y, width, height):
         # Rectangle parameters
@@ -191,7 +194,7 @@ class TestDenseWrapper(gym.Wrapper):
                 self._die_position = None
                 self._last_agent_pos = agent_pos
                 # logger.info(f'{self._step_counter}: respawned')
-                self._save_obs(obs, 'agent respawned!')
+                self._save_obs(obs, 'agent respawned!', player_pos=agent_pos)
             else:
                 is_respawning = True
                 # logger.info(f'{self._step_counter}: respawning')
@@ -212,20 +215,43 @@ class TestDenseWrapper(gym.Wrapper):
         self._room_life_grid[f'{grid_row},{grid_column}'] = True
 
         if self._last_agent_pos is not None:
+            last_agent_x = self._last_agent_pos[0]
             last_agent_y = self._last_agent_pos[1]
+            current_agent_x = agent_pos[0]
             current_agent_y = agent_pos[1]
+            x_move_direction = None
+
+            if current_agent_x < last_agent_x:
+                x_move_direction = 'right'
+            elif current_agent_x > last_agent_x:
+                x_move_direction = 'left'
+
             if (not agent_died) and (not is_respawning):
 
                 y_vel = abs(float(
                     current_agent_y - last_agent_y)
                 )  # if falling or going down y_vel is negative
 
+                x_vel = abs(float(
+                    current_agent_x - last_agent_x)
+                )
+
                 # if (y_vel >= 8) and (current_agent_y < last_agent_y):
                 if (y_vel >= 8) and (current_agent_y < last_agent_y):
                     self._falling_distance += y_vel
 
+                if (
+                        (x_move_direction is not None) and
+                        (x_vel >= 4) and
+                        (self._falling_distance <= 4)
+                ):
+                    # logger.info('x reward')
+                    shaping_reward += self.reward_definition.move_in_x_axis_reward
+
             if current_agent_y >= last_agent_y:
                 self._falling_distance = 0
+
+            self._last_x_move_direction = x_move_direction
 
         if terminated or truncated:
             self._reset()
@@ -235,23 +261,24 @@ class TestDenseWrapper(gym.Wrapper):
         if (self._falling_distance > 25) and (not agent_died) and (not is_respawning):
             self._falling_distance = 0
             shaping_reward += self.reward_definition.fall_reward
-            self._save_obs(obs, 'punish falling')
+            self._save_obs(obs, 'punish falling', player_pos=agent_pos)
             # logger.info(f'{self._step_counter}: falling more than 4 steps')
 
         if agent_died:
             self._last_agent_pos = None
             self._die_position = agent_pos
             self._falling_distance = 0
-            self._save_obs(obs, 'agent died!')
+            self._save_obs(obs, 'agent died!', player_pos=agent_pos)
             self._reset_life_grid_state()
+            self._last_x_move_direction = None
         else:
             self._last_agent_pos = agent_pos
 
         self._last_agent_n_lives = n_lives
 
         total_reward = (
-            reward +
-            shaping_reward
+                reward +
+                shaping_reward
         )
 
         info['env_reward'] = reward
