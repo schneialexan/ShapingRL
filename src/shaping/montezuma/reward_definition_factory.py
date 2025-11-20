@@ -24,6 +24,8 @@ class MontezumasTestShaperRewardDefinition(RewardDefinition):
 
         self.explored_new_grid_item_reward = 1
 
-
         self.visit_already_explored_grid_item_reward = 16 / truncate_episode_after_n_steps
         self.move_in_x_axis_reward = 8 / truncate_episode_after_n_steps
+
+        # self.visit_already_explored_grid_item_reward = 0
+        # self.move_in_x_axis_reward = 0

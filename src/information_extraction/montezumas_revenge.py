@@ -49,7 +49,11 @@ class MontezumasRAMInformationExtractor:
 
     def get_room_id(self):
         ram = self._wrapper.env.unwrapped.ale.getRAM()
-        return ram[self._variable_to_ram_index_dict["room_state"]]
+        return ram[self._variable_to_ram_index_dict["room_number"]]
+
+    def get_n_items_in_inventory(self):
+        ram = self._wrapper.env.unwrapped.ale.getRAM()
+        return int(ram[self._variable_to_ram_index_dict["items_in_inventory_count"]])
 
 
 class MontezumasInformationExtractor(ABC):

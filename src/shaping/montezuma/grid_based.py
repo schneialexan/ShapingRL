@@ -24,10 +24,12 @@ class TestDenseWrapper(gym.Wrapper):
             reward_definition: MontezumasTestShaperRewardDefinition,
             n_grid_items_horizontal=7,
             n_grid_items_vertical=10,
-            debug_rendering=True
+            debug_rendering=True,
+            add_visited_states_in_observations=False
     ):
         super().__init__(env)
         self._debug_rendering = debug_rendering
+        self._add_visited_states_in_observations = add_visited_states_in_observations
 
         self._info_extractor = MontezumasRAMInformationExtractor(self)
 
@@ -73,7 +75,11 @@ class TestDenseWrapper(gym.Wrapper):
     def render(self):
         if self._debug_rendering:
             return self._save_obs(
-                super().render(), '', save_image=False, player_pos=self._info_extractor.get_player_position()
+                super().render(),
+                '',
+                save_image=False,
+                show_room_id=True,
+                player_pos=self._info_extractor.get_player_position()
             )
         else:
             return super().render()
@@ -97,7 +103,15 @@ class TestDenseWrapper(gym.Wrapper):
         alpha = rgba_color[3] / 255.0
         cv2.addWeighted(overlay, alpha, obs, 1 - alpha, 0, obs)
 
-    def _save_obs(self, obs, description, debug=False, player_pos=None, save_image=True) -> np.array:
+    def _save_obs(
+            self,
+            obs,
+            description,
+            debug=False,
+            player_pos=None,
+            save_image=True,
+            show_room_id=False
+    ) -> np.array:
         img_dir = f'{PROJECT_ROOT_PATH}/img_debug/{wandb.run.id}/{self._episode_counter:05}_episode_{5 - self._last_agent_n_lives}_lost_lifes/'
         create_dir_if_not_exists(img_dir)
 
@@ -152,6 +166,14 @@ class TestDenseWrapper(gym.Wrapper):
                 bottom_right,
                 [255, 0, 0], 1
             )
+
+        if show_room_id:
+            text = f'room: {self._info_extractor.get_room_id()} '
+            position = (
+                0,
+                25
+            )  # (x, y) coordinates for the text
+            cv2.putText(obs, text, position, font, font_scale, color, thickness, cv2.LINE_AA)
 
         if save_image:
             obs = cv2.cvtColor(obs, cv2.COLOR_RGB2BGR)
@@ -303,4 +325,8 @@ class TestDenseWrapper(gym.Wrapper):
         info['shaping_reward'] = shaping_reward
         info['total_reward'] = total_reward
 
-        return np.zeros_like(obs), total_reward, terminated, truncated, info
+        if self._add_visited_states_in_observations:
+            self._save_obs(obs.copy(), '', False, save_image=True)
+            obs = self._save_obs(obs.copy(), '', False)
+
+        return obs, total_reward, terminated, truncated, info
