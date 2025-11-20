@@ -19,7 +19,7 @@ class MontezumasTestShaperRewardDefinition(RewardDefinition):
         self._explored_all_grid_items_reward = 30
         self._explored_new_grid_item_reward = 1
 
-        self.fall_reward = -2
+        self.fall_reward = 0
         self.die_reward = -3
 
         self.explored_new_grid_item_reward = 1
