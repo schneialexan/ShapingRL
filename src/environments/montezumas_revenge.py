@@ -156,7 +156,8 @@ def main(
         add_visited_states_in_observations: bool,
         ppo_n_steps: int = 2048,
         ppo_learning_rate: float = 3e-4,
-        ppo_n_epochs: int = 10
+        ppo_n_epochs: int = 10,
+        wandb_run_group: str = None
 ):
     if debug:
         os.environ["WANDB_MODE"] = "offline"
@@ -188,7 +189,8 @@ def main(
             'reduced_action_space': reduced_action_space,
             'add_visited_states_in_observations': add_visited_states_in_observations
         },
-        monitor_gym=True
+        monitor_gym=True,
+        group=wandb_run_group
     )
 
     # Create environment

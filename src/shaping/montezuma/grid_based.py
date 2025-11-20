@@ -72,6 +72,9 @@ class TestDenseWrapper(gym.Wrapper):
         self._falling_distance = 0
         self._last_x_move_direction = None
 
+    def _on_big_env_reward(self):
+        self._reset_grid_reward_states()
+
     def render(self):
         if self._debug_rendering:
             return self._save_obs(
@@ -79,7 +82,8 @@ class TestDenseWrapper(gym.Wrapper):
                 '',
                 save_image=False,
                 show_room_id=True,
-                player_pos=self._info_extractor.get_player_position()
+                player_pos=self._info_extractor.get_player_position(),
+                show_player_lives=True
             )
         else:
             return super().render()
@@ -110,7 +114,8 @@ class TestDenseWrapper(gym.Wrapper):
             debug=False,
             player_pos=None,
             save_image=True,
-            show_room_id=False
+            show_room_id=False,
+            show_player_lives=False
     ) -> np.array:
         img_dir = f'{PROJECT_ROOT_PATH}/img_debug/{wandb.run.id}/{self._episode_counter:05}_episode_{5 - self._last_agent_n_lives}_lost_lifes/'
         create_dir_if_not_exists(img_dir)
@@ -175,6 +180,14 @@ class TestDenseWrapper(gym.Wrapper):
             )  # (x, y) coordinates for the text
             cv2.putText(obs, text, position, font, font_scale, color, thickness, cv2.LINE_AA)
 
+        if show_player_lives:
+            text = f'lives: {self._info_extractor.get_player_number_of_lives()} '
+            position = (
+                0,
+                40
+            )  # (x, y) coordinates for the text
+            cv2.putText(obs, text, position, font, font_scale, color, thickness, cv2.LINE_AA)
+
         if save_image:
             obs = cv2.cvtColor(obs, cv2.COLOR_RGB2BGR)
             cv2.imwrite(f'{img_dir}/{self._step_counter:05}_color_img.jpg', obs)
@@ -223,6 +236,9 @@ class TestDenseWrapper(gym.Wrapper):
         agent_pos = np.array(ram_player_position)
 
         # self._save_obs(obs, "test position", False, player_pos=ram_player_position)
+
+        if float(reward) >= 100:
+            self._on_big_env_reward()
 
         if self._die_position is not None:
             distance_to_die_pos = np.linalg.norm(
