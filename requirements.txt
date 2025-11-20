@@ -11,6 +11,7 @@ wandb==0.21.4
 
 # Scientific computing
 numpy==2.3.4
+scikit-learn==1.7.2
 
 # Visualization
 matplotlib==3.10.5
