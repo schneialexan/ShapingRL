@@ -194,6 +194,20 @@ def main(
         group=wandb_run_group
     )
 
+    wandb.define_metric("env_step", summary="max")
+    wandb.define_metric("env_reward", summary="max")
+
+    wandb.define_metric("episode", summary="max")
+    wandb.define_metric("episode_length", summary="max")
+    wandb.define_metric("episode_reward", summary="max")
+
+    wandb.define_metric("explained_variance", summary="max")
+
+    wandb.define_metric("loss", summary="min")
+    wandb.define_metric("value_loss", summary="min")
+    wandb.define_metric("entropy_loss", summary="min")
+    wandb.define_metric("policy_gradient_loss", summary="min")
+
     # Create environment
     # render_mode = "human" if args.render else 'rgb_array'
     env, reward_definition = make_env(
