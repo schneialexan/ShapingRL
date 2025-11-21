@@ -113,7 +113,7 @@ class TestDenseWrapper(gym.Wrapper):
             description,
             debug=False,
             player_pos=None,
-            save_image=True,
+            save_image=False,
             show_room_id=False,
             show_player_lives=False
     ) -> np.array:
