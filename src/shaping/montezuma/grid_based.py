@@ -117,8 +117,6 @@ class TestDenseWrapper(gym.Wrapper):
             show_room_id=False,
             show_player_lives=False
     ) -> np.array:
-        img_dir = f'{PROJECT_ROOT_PATH}/img_debug/{wandb.run.id}/{self._episode_counter:05}_episode_{5 - self._last_agent_n_lives}_lost_lifes/'
-        create_dir_if_not_exists(img_dir)
 
         # Define the text and position
         text = description
@@ -189,6 +187,8 @@ class TestDenseWrapper(gym.Wrapper):
             cv2.putText(obs, text, position, font, font_scale, color, thickness, cv2.LINE_AA)
 
         if save_image:
+            img_dir = f'{PROJECT_ROOT_PATH}/img_debug/{wandb.run.id}/{self._episode_counter:05}_episode_{5 - self._last_agent_n_lives}_lost_lifes/'
+            create_dir_if_not_exists(img_dir)
             obs = cv2.cvtColor(obs, cv2.COLOR_RGB2BGR)
             cv2.imwrite(f'{img_dir}/{self._step_counter:05}_color_img.jpg', obs)
 
