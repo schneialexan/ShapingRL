@@ -225,7 +225,7 @@ def main(
 
         video_recording_length = 1000
         vec_env = VecVideoRecorder(
-            vec_env, f"videos/{run.id}",
+            vec_env, os.path.join(PROJECT_ROOT_PATH, 'videos', wandb.run.id),
             record_video_trigger=lambda x: x % video_recording_length == 0,
             video_length=(video_recording_length - 1),
         )
