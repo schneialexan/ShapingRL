@@ -157,7 +157,8 @@ def main(
         ppo_n_steps: int = 2048,
         ppo_learning_rate: float = 3e-4,
         ppo_n_epochs: int = 10,
-        wandb_run_group: str = None
+        wandb_run_group: str = None,
+        render_mode: Literal['rgb_array', 'human'] = 'rgb_array'
 ):
     if debug:
         os.environ["WANDB_MODE"] = "offline"
@@ -194,7 +195,7 @@ def main(
     )
 
     # Create environment
-    render_mode = "human" if args.render else 'rgb_array'
+    # render_mode = "human" if args.render else 'rgb_array'
     env, reward_definition = make_env(
         truncate_episode_after_n_steps=truncate_episode_after_n_steps,
         env_name='ALE/MontezumaRevenge-v5',
@@ -219,7 +220,7 @@ def main(
     env = Monitor(env)
     vec_env = DummyVecEnv([lambda: env])
 
-    if not args.render:
+    if not render_mode == 'human':
         print('Saving videos!!!!!!!!!!')
 
         video_recording_length = 1000

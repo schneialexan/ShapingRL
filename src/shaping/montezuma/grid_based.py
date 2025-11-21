@@ -249,7 +249,7 @@ class TestDenseWrapper(gym.Wrapper):
                 self._die_position = None
                 self._last_agent_pos = agent_pos
                 # logger.info(f'{self._step_counter}: respawned')
-                self._save_obs(obs, 'agent respawned!', player_pos=agent_pos)
+                # self._save_obs(obs, 'agent respawned!', player_pos=agent_pos)
             else:
                 is_respawning = True
                 # logger.info(f'{self._step_counter}: respawning')
@@ -304,7 +304,7 @@ class TestDenseWrapper(gym.Wrapper):
         if (self._falling_distance > 8) and (not agent_died) and (not is_respawning) and (not terminated):
             # self._falling_distance = 0
             shaping_reward += self.reward_definition.fall_reward
-            self._save_obs(obs, 'punish falling', player_pos=agent_pos)
+            # self._save_obs(obs, 'punish falling', player_pos=agent_pos)
             # logger.info(f'{self._step_counter}: falling more than 4 steps')
         elif (not agent_died) and (not is_respawning) and (not terminated):
             if not self._room_grid[f'{grid_row},{grid_column}']:
@@ -324,7 +324,7 @@ class TestDenseWrapper(gym.Wrapper):
             self._last_agent_pos = None
             self._die_position = agent_pos
             self._falling_distance = 0
-            self._save_obs(obs, 'agent died!', player_pos=agent_pos)
+            # self._save_obs(obs, 'agent died!', player_pos=agent_pos)
             self._reset_life_grid_state()
             self._last_x_move_direction = None
         else:
@@ -342,7 +342,7 @@ class TestDenseWrapper(gym.Wrapper):
         info['total_reward'] = total_reward
 
         if self._add_visited_states_in_observations:
-            self._save_obs(obs.copy(), '', False, save_image=True)
+            # self._save_obs(obs.copy(), '', False, save_image=True)
             obs = self._save_obs(obs.copy(), '', False)
 
         return obs, total_reward, terminated, truncated, info
