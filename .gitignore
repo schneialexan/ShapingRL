@@ -105,3 +105,5 @@ data/processed/
 *~
 
 img_debug
+
+wandb_tables
