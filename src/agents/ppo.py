@@ -38,5 +38,6 @@ class PPOTrainer:
         self.model.learn(
             total_timesteps=self.config.get("total_timesteps", 100_000),
             callback=callback,
+            progress_bar=True
         )
         return self.model

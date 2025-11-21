@@ -241,7 +241,7 @@ def main(
         vec_env = VecVideoRecorder(
             vec_env, os.path.join(PROJECT_ROOT_PATH, 'videos', wandb.run.id),
             record_video_trigger=lambda x: x % video_recording_length == 0,
-            video_length=(video_recording_length - 1),
+            video_length=(video_recording_length - 1)
         )
 
     if agent == 'ppo':
@@ -250,7 +250,8 @@ def main(
                 'n_epochs': ppo_n_epochs,
                 'n_steps': ppo_n_steps,
                 'learning_rate': ppo_learning_rate,
-                'total_timesteps': timesteps
+                'total_timesteps': timesteps,
+                'verbose': 0
             }})
         vec_env = VecNormalize(
             vec_env,
