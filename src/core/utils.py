@@ -46,7 +46,7 @@ def record_best_run(agent_type, env, best_model_dir="./models", video_folder="./
     video_env = VecVideoRecorder(
         env,
         video_folder,
-        record_video_trigger=lambda x: True,
+        episode_trigger=lambda x: True,
         name_prefix=f"best_run_{agent_type}"
     )
 
@@ -100,7 +100,7 @@ def record_best_q_learning_run(env, q_table, discretize_fn, video_folder="./vide
     record_env.close()
     print(f"Recorded Q-Learning run: total reward = {total_reward}")
 
-def make_env(agent, shaping='none', render_mode="rgb_array", video_folder=None, record_video=False, episodes_per_video=25):
+def make_env(agent, shaping='none', render_mode="rgb_array", video_folder=None, record_video=False, episodes_per_video=25, shaping_method=2):
     env = gym.make('MountainCar-v0', render_mode=render_mode)
     # RecordEpisodeStatistics gives ep_rew_mean and ep_len_mean
     env = RecordEpisodeStatistics(env)
@@ -120,7 +120,7 @@ def make_env(agent, shaping='none', render_mode="rgb_array", video_folder=None, 
         )
     # Apply shaping wrapper
     if shaping == 'naive':
-        env = NaiveDenseWrapper(env)
+        env = NaiveDenseWrapper(env, naive_method=shaping_method)
     elif shaping == 'potential':
-        env = PotentialBasedWrapper(env)
+        env = PotentialBasedWrapper(env, potential_method=shaping_method)
     return env

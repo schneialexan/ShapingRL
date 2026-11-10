@@ -24,6 +24,7 @@ def main(args=None):
     parser.add_argument('--record-best', action='store_true', help="Record the best model after training", default=False)
     parser.add_argument('--record-video', action='store_true', help="Record the model during training", default=True)
     parser.add_argument('--episodes-per-video', action='store_true', help="How many episodes in between each video gets recorded", default=25)
+    parser.add_argument('--potential-shaping-method', action='store_true', help=";Method that is used for the potential shaping ([1]x-pos, [2]height, [3]kinetic function)", default=2)
     args: Args = parser.parse_args() if args is None else args
 
     # Get config for the selected agent
@@ -47,7 +48,11 @@ def main(args=None):
         )
 
     # Environment setup
-    env = make_env(args.agent, shaping=args.shaping, record_video=args.record_video, episodes_per_video=args.episodes_per_video)
+    env = make_env(args.agent, 
+                   shaping=args.shaping, 
+                   record_video=args.record_video, 
+                   episodes_per_video=args.episodes_per_video, 
+                   potential_method=args.potential_shaping_method)
 
     # Wrap in VecEnv for SB3
     vec_env = DummyVecEnv([lambda: env])
@@ -83,13 +88,18 @@ def main(args=None):
 
 if __name__ == '__main__':
     class Args:
-        agent = 'q_learning'    # choose 'ppo', 'dqn', or 'q_learning'
-        shaping = 'potential'        # choose 'none', 'naive', 'potential'
-        timesteps = 200_000     # for q_learning adjust config.py
+        agent = 'ppo'           # choose 'ppo', 'dqn', or 'q_learning'
+        shaping = 'potential'   # choose 'none', 'naive', 'potential'
+        timesteps = 2_000     # for q_learning adjust config.py
         run_name = None         # e.g. "test_run", default: [model]_[shaping]
         no_wandb = False
         record_best = True
         record_video = True
         episodes_per_video = 100
+        potential_shaping_method = 2
     args = Args()
     main(args)
+    # if you want to run all shaping methods at once:
+    #for i in range(1, 4):
+    #    args.potential_shaping_method = i
+    #    main(args)

@@ -26,9 +26,9 @@ class WandbCallback(BaseCallback):
                 self.shaping_rewards.append(info['shaping_reward'])
                 self.total_rewards.append(info['total_reward'])
                 metrics = {
-                    "env_reward": self.env_rewards,
-                    "shaping_reward": self.shaping_rewards,
-                    "total_reward": self.total_rewards
+                    "step_env_reward": self.env_rewards,
+                    "step_haping_reward": self.shaping_rewards,
+                    "step_total_reward": self.total_rewards
                 }
                 self._agent_logger.log_metrics(metrics)
 
@@ -42,17 +42,17 @@ class WandbCallback(BaseCallback):
                 metrics = {
                     "episode_reward": ep_info["r"],
                     "episode_length": ep_info["l"],
-                    "avg_shaping_reward": avg_shaping_reward,
-                    "avg_total_reward": avg_total_reward,
-                    "approx_kl": sb3_logs.get("rollout/approx_kl"),
-                    "clip_fraction": sb3_logs.get("rollout/clip_fraction"),
-                    "entropy_loss": sb3_logs.get("train/entropy_loss"),
-                    "policy_gradient_loss": sb3_logs.get("train/policy_gradient_loss"),
-                    "value_loss": sb3_logs.get("train/value_loss"),
-                    "loss": sb3_logs.get("train/loss"),
-                    "explained_variance": sb3_logs.get("train/explained_variance"),
-                    "learning_rate": sb3_logs.get("train/learning_rate"),
-                    "total_timesteps": sb3_logs.get("time/total_timesteps")
+                    "episode_avg_shaping_reward": avg_shaping_reward,
+                    "episode_avg_total_reward": avg_total_reward,
+                    "episode_approx_kl": sb3_logs.get("rollout/approx_kl"),
+                    "episode_clip_fraction": sb3_logs.get("rollout/clip_fraction"),
+                    "episode_entropy_loss": sb3_logs.get("train/entropy_loss"),
+                    "episode_policy_gradient_loss": sb3_logs.get("train/policy_gradient_loss"),
+                    "episode_value_loss": sb3_logs.get("train/value_loss"),
+                    "episode_loss": sb3_logs.get("train/loss"),
+                    "episode_explained_variance": sb3_logs.get("train/explained_variance"),
+                    "episode_learning_rate": sb3_logs.get("train/learning_rate"),
+                    "episode_total_timesteps": sb3_logs.get("time/total_timesteps")
                 }
 
                 self._agent_logger.log_episode(self.nr_episode, **metrics)
