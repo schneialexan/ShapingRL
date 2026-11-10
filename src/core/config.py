@@ -29,6 +29,6 @@ CONFIG = {
         "total_episodes": 2000,
     },
     "wandb": {
-        "project": "mountaincar-reward-shaping",
+        "project": "mountaincar-reward-shaping-vfinal",
     }
 }

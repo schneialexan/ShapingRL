@@ -34,7 +34,7 @@ def main(args=None):
         
     # Automatically set run name
     if args.run_name is None or args.run_name.lower() == 'default_run':
-        run_name = f"{args.agent}_{args.shaping}"
+        run_name = f"{args.agent}_{args.shaping}_{args.shaping_method}"
     else:
         run_name = args.run_name
 
@@ -52,7 +52,7 @@ def main(args=None):
                    shaping=args.shaping, 
                    record_video=args.record_video, 
                    episodes_per_video=args.episodes_per_video, 
-                   potential_method=args.potential_shaping_method)
+                   shaping_method=args.shaping_method)
 
     # Wrap in VecEnv for SB3
     vec_env = DummyVecEnv([lambda: env])
@@ -71,35 +71,39 @@ def main(args=None):
         videos = []
         for file in os.listdir(f"./videos/{args.shaping}/{args.agent}"):
             if file.endswith(".mp4"):
-                videos.append(wandb.Video(os.path.join(f"./videos/{args.shaping}/{args.agent}", file), format="mp4", caption=f"Episode: {file.split("-")[-1].split(".")[0]}"))
+                videos.append(wandb.Video(os.path.join(f"./videos/{args.shaping}/{args.agent}", file), format="mp4", caption=f"Episode: {file.split('-')[-1].split('.')[0]}"))
         wandb.log({"training_videos": videos})
         wandb.finish()
 
     if args.record_best:
         if args.agent in ['ppo', 'dqn']:
-            eval_env = make_env(args.shaping, render_mode="rgb_array")
+            eval_env = make_env(args.agent, 
+                                shaping=args.shaping, 
+                                record_video=args.record_video, 
+                                episodes_per_video=args.episodes_per_video, 
+                                shaping_method=args.shaping_method)
             record_best_run(args.agent, eval_env, best_model_dir=f"./models/{args.shaping}", video_folder=f"./videos/{args.shaping}")
         elif args.agent == 'q_learning':
             # Load best Q-table (assumes you saved it during training as 'best_q_table.npy')
             best_q = np.load(f"./models/{args.shaping}/best_q_table.npy", allow_pickle=True).item()
-            eval_env = make_env(args.shaping, render_mode="rgb_array")
+            eval_env = make_env(args.agent, 
+                                shaping=args.shaping, 
+                                record_video=args.record_video, 
+                                episodes_per_video=args.episodes_per_video, 
+                                shaping_method=args.shaping_method)
             record_best_q_learning_run(eval_env, best_q, discretize_fn=QLearningTrainer(eval_env, CONFIG['q_learning']).discretize, video_folder=f"./videos/{args.shaping}")
 
 
 if __name__ == '__main__':
     class Args:
-        agent = 'ppo'           # choose 'ppo', 'dqn', or 'q_learning'
+        agent = 'q_learning'           # choose 'ppo', 'dqn', or 'q_learning'
         shaping = 'potential'   # choose 'none', 'naive', 'potential'
-        timesteps = 2_000     # for q_learning adjust config.py
-        run_name = None         # e.g. "test_run", default: [model]_[shaping]
+        timesteps = 200_000   # for q_learning adjust config.py
+        run_name = None         # e.g. "test_run", default: [model]_[shaping]_[method]
         no_wandb = False
         record_best = True
         record_video = True
         episodes_per_video = 100
-        potential_shaping_method = 2
+        shaping_method = 3      # 1, 2, 3
     args = Args()
     main(args)
-    # if you want to run all shaping methods at once:
-    #for i in range(1, 4):
-    #    args.potential_shaping_method = i
-    #    main(args)
