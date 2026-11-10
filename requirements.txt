@@ -1,6 +1,6 @@
 # Core RL and ML libraries
 torch>=2.0.0
-gymnasium[box2d,atari,accept-rom-license]>=0.29.0
+gymnasium[box2d,atari,accept-rom-license,other]>=0.29.0
 ale-py>=0.8.0
 pygame>=2.5.0
 

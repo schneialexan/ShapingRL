@@ -94,8 +94,8 @@ def main(args=None):
 
 if __name__ == '__main__':
     class Args:
-        agent = 'dqn'           # choose 'ppo', 'dqn', or 'q_learning'
-        shaping = 'potential'        # choose 'none', 'naive', 'potential'
+        agent = 'ppo'           # choose 'ppo', 'dqn', or 'q_learning'
+        shaping = 'none'        # choose 'none', 'naive', 'potential'
         timesteps = 200_000
         run_name = None         # e.g. "test_run", default: [model]_[shaping]
         no_wandb = False
