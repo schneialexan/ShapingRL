@@ -1,7 +1,4 @@
 import argparse
-import gymnasium as gym
-from gymnasium.wrappers import RecordEpisodeStatistics
-from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 import wandb
 import sys
@@ -12,25 +9,10 @@ import numpy as np
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.config import CONFIG
-from core.utils import record_best_q_learning_run, record_best_run
-from shaping.naive_dense import NaiveDenseWrapper
-from shaping.potential_based import PotentialBasedWrapper
+from core.utils import record_best_q_learning_run, record_best_run, make_env
 from agents.ppo import PPOTrainer
 from agents.dqn import DQNTrainer
 from agents.q_learning import QLearningTrainer
-
-def make_env(shaping='none', render_mode="none"):
-    env = gym.make('MountainCar-v0', render_mode=render_mode)
-    # RecordEpisodeStatistics gives ep_rew_mean and ep_len_mean
-    env = RecordEpisodeStatistics(env)
-    # Stable Baselines3 Monitor wrapper
-    env = Monitor(env)
-    # Apply shaping wrapper
-    if shaping == 'naive':
-        env = NaiveDenseWrapper(env)
-    elif shaping == 'potential':
-        env = PotentialBasedWrapper(env)
-    return env
 
 def main(args=None):
     parser = argparse.ArgumentParser()
@@ -40,6 +22,8 @@ def main(args=None):
     parser.add_argument('--run-name', type=str, default='default_run')
     parser.add_argument('--no-wandb', action='store_true')
     parser.add_argument('--record-best', action='store_true', help="Record the best model after training", default=False)
+    parser.add_argument('--record-video', action='store_true', help="Record the model during training", default=True)
+    parser.add_argument('--episodes-per-video', action='store_true', help="How many episodes in between each video gets recorded", default=25)
     args: Args = parser.parse_args() if args is None else args
 
     # Get config for the selected agent
@@ -63,7 +47,7 @@ def main(args=None):
         )
 
     # Environment setup
-    env = make_env(args.shaping)
+    env = make_env(args.agent, shaping=args.shaping, record_video=args.record_video, episodes_per_video=args.episodes_per_video)
 
     # Wrap in VecEnv for SB3
     vec_env = DummyVecEnv([lambda: env])
@@ -79,6 +63,11 @@ def main(args=None):
     print('Training finished.')
 
     if run:
+        videos = []
+        for file in os.listdir(f"./videos/{args.shaping}/{args.agent}"):
+            if file.endswith(".mp4"):
+                videos.append(wandb.Video(os.path.join(f"./videos/{args.shaping}/{args.agent}", file), format="mp4", caption=f"Episode: {file.split("-")[-1].split(".")[0]}"))
+        wandb.log({"training_videos": videos})
         wandb.finish()
 
     if args.record_best:
@@ -94,11 +83,13 @@ def main(args=None):
 
 if __name__ == '__main__':
     class Args:
-        agent = 'ppo'           # choose 'ppo', 'dqn', or 'q_learning'
-        shaping = 'none'        # choose 'none', 'naive', 'potential'
-        timesteps = 200_000
+        agent = 'q_learning'    # choose 'ppo', 'dqn', or 'q_learning'
+        shaping = 'potential'        # choose 'none', 'naive', 'potential'
+        timesteps = 200_000     # for q_learning adjust config.py
         run_name = None         # e.g. "test_run", default: [model]_[shaping]
         no_wandb = False
         record_best = True
+        record_video = True
+        episodes_per_video = 100
     args = Args()
     main(args)

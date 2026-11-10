@@ -25,7 +25,7 @@ class QLearningTrainer:
         return tuple(int(np.digitize(obs[i], self.bins_list[i])) for i in range(len(obs)))
 
     def train(self):
-        best_reward = -float('inf')  # <-- track best episode
+        best_reward = -float('inf') 
         for ep in range(self.total_episodes):
             reset_result = self.env.reset()
             if isinstance(reset_result, tuple):

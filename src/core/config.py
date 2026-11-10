@@ -26,9 +26,9 @@ CONFIG = {
         "epsilon_min": 0.02,
         "epsilon_decay": 0.995,
         "n_bins": [18,14],
-        "total_episodes": 1000,
+        "total_episodes": 2000,
     },
     "wandb": {
-        "project": "mountaincar-reward-shaping",
+        "project": "mountaincar-reward-shaping-v1",
     }
 }

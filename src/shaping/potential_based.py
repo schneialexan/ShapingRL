@@ -1,6 +1,15 @@
 import gymnasium as gym
 
 class PotentialBasedWrapper(gym.Wrapper):
+    """
+    Gymnasium wrapper for Potential-Based Reward Shaping (PBRS).
+    
+    This modifies the reward as:
+        r'_t = r_t + F(s_t, a_t, s_{t+1})
+    where
+        F(s, a, s') = γ * Φ(s') - Φ(s)
+    ensuring policy invariance.
+    """
     def __init__(self, env, gamma=0.99, potential_scale=1.0):
         super().__init__(env)
         self.gamma = gamma
@@ -20,10 +29,11 @@ class PotentialBasedWrapper(gym.Wrapper):
         self.last_potential = phi_next
         self.last_shaping = shaping_reward
 
-        # Log detailed reward composition
-        info['env_reward'] = reward
-        info['shaping_reward'] = shaping_reward
-        info['total_reward'] = total_reward
+        info.update({
+            'env_reward': reward,
+            'shaping_reward': shaping_reward,
+            'total_reward': total_reward
+        })
 
         return obs, total_reward, terminated, truncated, info
 
@@ -34,10 +44,5 @@ class PotentialBasedWrapper(gym.Wrapper):
     
     def potential(self, obs):
         position, velocity = obs
-        goal_pos = 0.5
-
-        # Potential function based on position and velocity
-        # Smoothly increases as the car approaches the goal and builds momentum
-        distance_to_goal = goal_pos - position
-        phi = self.potential_scale * (-distance_to_goal + 0.1 * velocity)
-        return phi
+        # Potential increases with position and velocity
+        return self.potential_scale * (position + 0.1 * velocity)

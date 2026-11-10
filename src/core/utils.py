@@ -1,10 +1,16 @@
 import glob
 import numpy as np
 import os
+import gymnasium as gym
+from datetime import datetime
 
-from gymnasium.wrappers import RecordVideo
-from stable_baselines3.common.vec_env import DummyVecEnv, VecVideoRecorder, VecNormalize
+from gymnasium.wrappers import RecordVideo, RecordEpisodeStatistics
 from stable_baselines3 import PPO, DQN
+from stable_baselines3.common.vec_env import DummyVecEnv, VecVideoRecorder, VecNormalize
+from stable_baselines3.common.monitor import Monitor
+
+from shaping.naive_dense import NaiveDenseWrapper
+from shaping.potential_based import PotentialBasedWrapper
 
 def record_best_run(agent_type, env, best_model_dir="./models", video_folder="./videos", video_length=500):
     """
@@ -93,3 +99,28 @@ def record_best_q_learning_run(env, q_table, discretize_fn, video_folder="./vide
 
     record_env.close()
     print(f"Recorded Q-Learning run: total reward = {total_reward}")
+
+def make_env(agent, shaping='none', render_mode="rgb_array", video_folder=None, record_video=False, episodes_per_video=25):
+    env = gym.make('MountainCar-v0', render_mode=render_mode)
+    # RecordEpisodeStatistics gives ep_rew_mean and ep_len_mean
+    env = RecordEpisodeStatistics(env)
+    # Stable Baselines3 Monitor wrapper
+    env = Monitor(env)
+    # Add Video Recorder
+    if record_video:
+        if video_folder is None:
+            video_folder = f"./videos/{shaping}/{agent}"
+        os.makedirs(video_folder, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d")
+        env = RecordVideo(
+            env,
+            video_folder=video_folder,
+            episode_trigger=lambda ep: ep % episodes_per_video == 0,  # record every 50 episodes
+            name_prefix=f"train_{timestamp}"
+        )
+    # Apply shaping wrapper
+    if shaping == 'naive':
+        env = NaiveDenseWrapper(env)
+    elif shaping == 'potential':
+        env = PotentialBasedWrapper(env)
+    return env
