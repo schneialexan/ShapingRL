@@ -4,10 +4,11 @@ from collections import defaultdict
 import wandb
 
 class QLearningTrainer:
-    def __init__(self, env, config, run=None):
+    def __init__(self, env, config, run=None, shaping="none"):
         self.env = env
         self.config = config
         self.run = run
+        self.shaping = shaping
         self.q_table = defaultdict(lambda: np.zeros(self.env.action_space.n))
         self.epsilon = config.get('epsilon_start', 1.0)
         self.epsilon_min = config.get('epsilon_min', 0.02)
@@ -24,6 +25,7 @@ class QLearningTrainer:
         return tuple(int(np.digitize(obs[i], self.bins_list[i])) for i in range(len(obs)))
 
     def train(self):
+        best_reward = -float('inf')  # <-- track best episode
         for ep in range(self.total_episodes):
             reset_result = self.env.reset()
             if isinstance(reset_result, tuple):
@@ -72,13 +74,18 @@ class QLearningTrainer:
             # Update epsilon
             self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
-            # Compute Q-metrics
-            max_q = max([np.max(self.q_table[s]) for s in self.q_table])
-            mean_q = np.mean([np.mean(self.q_table[s]) for s in self.q_table])
-            visited_best_q = max([np.max(self.q_table[s]) for s in visited_states])
+            # Save best Q-table
+            if ep_reward > best_reward:
+                best_reward = ep_reward
+                best_q_table = dict(self.q_table)
+                np.save(f"./models/{self.shaping}/best_q_table.npy", best_q_table)
+                print(f"New best episode {ep} with reward {best_reward:.2f} saved!")
 
             # Log to WandB
             if self.run:
+                max_q = max([np.max(self.q_table[s]) for s in self.q_table])
+                mean_q = np.mean([np.mean(self.q_table[s]) for s in self.q_table])
+                visited_best_q = max([np.max(self.q_table[s]) for s in visited_states])
                 wandb.log({
                     'episode': ep,
                     'episode_reward': ep_reward,

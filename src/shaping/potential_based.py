@@ -8,10 +8,6 @@ class PotentialBasedWrapper(gym.Wrapper):
         self.last_potential = None
         self.last_shaping = 0.0
 
-    def potential(self, obs):
-        # Simple potential: scaled x-position
-        return self.potential_scale * obs[0]
-
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)
         phi_next = self.potential(obs)
@@ -35,3 +31,13 @@ class PotentialBasedWrapper(gym.Wrapper):
         obs, info = self.env.reset(**kwargs)
         self.last_potential = self.potential(obs)
         return obs, info
+    
+    def potential(self, obs):
+        position, velocity = obs
+        goal_pos = 0.5
+
+        # Potential function based on position and velocity
+        # Smoothly increases as the car approaches the goal and builds momentum
+        distance_to_goal = goal_pos - position
+        phi = self.potential_scale * (-distance_to_goal + 0.1 * velocity)
+        return phi

@@ -1,9 +1,11 @@
 import gymnasium as gym
 
 class NaiveDenseWrapper(gym.Wrapper):
-    def __init__(self, env, shaping_coef=0.1):
+    def __init__(self, env, shaping_coef=0.1, velocity_coef=0.05, penalty_coef=0.02):
         super().__init__(env)
         self.shaping_coef = shaping_coef
+        self.velocity_coef = velocity_coef
+        self.penalty_coef = penalty_coef
         self.last_shaping = 0.0
 
     def step(self, action):
@@ -20,5 +22,17 @@ class NaiveDenseWrapper(gym.Wrapper):
         return obs, total_reward, terminated, truncated, info
 
     def _shaping(self, obs):
-        # Example: encourage moving to the right
-        return self.shaping_coef * obs[0]
+        position, velocity = obs
+        goal_pos = 0.5  # MountainCar goal position
+
+        # Encourage moving toward the goal
+        progress_reward = self.shaping_coef * (position / goal_pos)
+
+        # Encourage building momentum
+        velocity_bonus = self.velocity_coef * abs(velocity)
+
+        # Penalize being too far left (bottom of valley)
+        penalty = -self.penalty_coef * (abs(position + 0.5) ** 2)
+
+        shaping = progress_reward + velocity_bonus + penalty
+        return shaping

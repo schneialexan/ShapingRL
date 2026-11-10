@@ -2,11 +2,12 @@ from stable_baselines3 import PPO
 from core.wandb_callback import WandbCallback
 
 class PPOTrainer:
-    def __init__(self, env, config, run=None):
+    def __init__(self, env, config, run=None, shaping="none"):
         self.env = env
         self.config = config
         self.run = run
         self.model = None
+        self.shaping = shaping
 
     def train(self):
         self.model = PPO(
@@ -21,7 +22,7 @@ class PPOTrainer:
             verbose=self.config.get('verbose', 1)
         )
 
-        callback = WandbCallback(self.run)
+        callback = WandbCallback("ppo", run=self.run, shaping=self.shaping)
         self.model.learn(
             total_timesteps=self.config.get('total_timesteps', 100_000),
             callback=callback

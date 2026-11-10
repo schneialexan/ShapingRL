@@ -2,11 +2,12 @@ from stable_baselines3 import DQN
 from core.wandb_callback import WandbCallback
 
 class DQNTrainer:
-    def __init__(self, env, config, run=None):
+    def __init__(self, env, config, run=None, shaping="none"):
         self.env = env
         self.config = config
         self.run = run
         self.model = None
+        self.shaping = shaping
 
     def train(self):
         self.model = DQN(
@@ -23,7 +24,7 @@ class DQNTrainer:
             verbose=self.config.get('verbose', 1)
         )
 
-        callback = WandbCallback(self.run)
+        callback = WandbCallback("dqn", run=self.run, shaping=self.shaping)
         self.model.learn(
             total_timesteps=self.config.get('total_timesteps', 200_000),
             callback=callback

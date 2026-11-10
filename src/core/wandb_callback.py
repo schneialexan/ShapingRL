@@ -1,15 +1,21 @@
 from stable_baselines3.common.callbacks import BaseCallback
 from core.logger import AgentLogger
+import os
 
 class WandbCallback(BaseCallback):
     """SB3 callback to log episode stats + shaping influence + SB3 metrics."""
-    def __init__(self, run=None, verbose=0):
+    def __init__(self, agent: str, run=None, verbose=0, save_path=".", shaping="none"):
         super().__init__(verbose)
         self._agent_logger  = AgentLogger(run)
         self.env_rewards = []
         self.shaping_rewards = []
         self.total_rewards = []
         self.nr_episode = 0
+        self.agent = agent
+        self.shaping = shaping
+        self.best_reward = -float('inf')
+        self.save_path = save_path
+        os.makedirs(self.save_path, exist_ok=True)
 
     def _on_step(self) -> bool:
         infos = self.locals.get('infos', [{}])
@@ -52,6 +58,12 @@ class WandbCallback(BaseCallback):
                 self._agent_logger.log_episode(self.nr_episode, **metrics)
                 self.nr_episode += 1
                 # Reset per-episode buffers
+                if ep_info["r"] > self.best_reward:
+                    self.best_reward = ep_info["r"]
+                    model_file = os.path.join(self.save_path, f"./models/{self.shaping}/best_{self.agent}_model.zip")
+                    self.model.save(model_file)
+                    if int(self.verbose) > 0:
+                        print(f"New best model saved: Episode {self.nr_episode}, Reward {self.best_reward:.2f}")
                 self.env_rewards.clear()
                 self.shaping_rewards.clear()
                 self.total_rewards.clear()
